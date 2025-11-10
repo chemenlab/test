@@ -1,6 +1,7 @@
 'use client'
 
 import * as React from 'react'
+import Link from 'next/link'
 import { Plus, Search, FileText } from 'lucide-react'
 import { format } from 'date-fns'
 import { ru } from 'date-fns/locale'
@@ -100,10 +101,12 @@ export default function OrdersPage() {
           <h1 className="text-3xl font-bold tracking-tight">Заказы</h1>
           <p className="text-muted-foreground">Заказ-наряды и управление работами</p>
         </div>
-        <Button>
-          <Plus className="mr-2 h-4 w-4" />
-          Создать заказ
-        </Button>
+        <Link href="/dashboard/orders/new">
+          <Button>
+            <Plus className="mr-2 h-4 w-4" />
+            Создать заказ
+          </Button>
+        </Link>
       </div>
 
       {/* Filters */}
@@ -143,8 +146,9 @@ export default function OrdersPage() {
           </Card>
         ) : (
           filteredOrders.map((order) => (
-            <Card key={order.id} className="hover:shadow-md transition-shadow cursor-pointer">
-              <CardHeader>
+            <Link key={order.id} href={`/dashboard/orders/${order.id}`}>
+              <Card className="hover:shadow-md transition-shadow cursor-pointer">
+                <CardHeader>
                 <div className="flex items-start justify-between">
                   <div>
                     <CardTitle className="flex items-center gap-2">
@@ -190,6 +194,7 @@ export default function OrdersPage() {
                 </div>
               </CardContent>
             </Card>
+            </Link>
           ))
         )}
       </div>

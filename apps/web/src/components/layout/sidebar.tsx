@@ -33,6 +33,11 @@ const menuItems = [
     icon: Calendar,
   },
   {
+    title: 'Услуги',
+    href: '/dashboard/services',
+    icon: Wrench,
+  },
+  {
     title: 'Заказы',
     href: '/dashboard/orders',
     icon: FileText,
