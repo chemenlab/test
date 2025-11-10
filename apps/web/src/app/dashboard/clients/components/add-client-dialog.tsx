@@ -4,6 +4,7 @@ import * as React from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
+import { toast } from 'sonner'
 
 import {
   Dialog,
@@ -80,8 +81,14 @@ export function AddClientDialog({
       })
       form.reset()
       onOpenChange(false)
+      toast.success('Клиент успешно добавлен', {
+        description: `${values.name} добавлен в базу данных`,
+      })
     } catch (error) {
       console.error(error)
+      toast.error('Ошибка при добавлении клиента', {
+        description: 'Попробуйте еще раз или обратитесь к администратору',
+      })
     } finally {
       setIsLoading(false)
     }

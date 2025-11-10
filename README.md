@@ -35,17 +35,67 @@ Monorepo структура с использованием pnpm workspaces и T
 - Redis
 - JWT Auth
 
+## ✨ Ключевые возможности
+
+- ✅ **Управление клиентами** - полный CRUD с DataTable, поиском и фильтрацией
+- ✅ **Календарь записей** - визуальный календарь с временными слотами
+- ✅ **Управление заказами** - отслеживание заказ-нарядов
+- ✅ **Склад запчастей** - учет запчастей с алертами остатков
+- ✅ **Аналитика** - графики выручки, популярных услуг, эффективности мастеров
+- ✅ **Toast уведомления** - красивые уведомления об успехе/ошибках
+- ✅ **Готовность к Prisma** - seed данные и миграция на реальную БД
+- ✅ **Production ready** - полный deployment гайд для Ubuntu + Nginx
+
 ## 🚀 Быстрый старт
 
+### Локальная разработка
+
 ```bash
+# Клонирование репозитория
+git clone <repo-url>
+cd crm-autoshop
+
 # Установка зависимостей
 pnpm install
+
+# Копирование .env файла
+cp .env.example .env
+
+# Запуск PostgreSQL и Redis через Docker (опционально)
+docker-compose up -d
 
 # Запуск dev сервера
 pnpm dev
 
-# Сборка проекта
-pnpm build
+# Приложение будет доступно на http://localhost:3000
+```
+
+### Production деплой
+
+Полная инструкция по развертыванию на Ubuntu: [DEPLOYMENT.md](./DEPLOYMENT.md)
+
+**Быстрый деплой Nginx:**
+```bash
+# Автоматическая установка Nginx конфигураций
+sudo bash nginx-configs/setup.sh
+
+# Получение SSL сертификатов
+sudo certbot --nginx -d vyborsto.ru -d www.vyborsto.ru
+sudo certbot --nginx -d api.vyborsto.ru
+```
+
+### Миграция на Prisma
+
+Если хотите использовать реальную PostgreSQL базу данных вместо mock данных:
+
+См. подробную инструкцию: [PRISMA_MIGRATION.md](./PRISMA_MIGRATION.md)
+
+```bash
+# Быстрый старт с Prisma
+cd packages/database
+pnpm db:generate
+pnpm db:push
+pnpm db:seed
 ```
 
 ## 🎯 Философия разработки
