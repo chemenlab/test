@@ -227,6 +227,7 @@ async function main() {
     prisma.vehicle.create({
       data: {
         clientId: clients[0].id,
+        brand: 'Toyota',
         make: 'Toyota',
         model: 'Camry',
         year: 2020,
@@ -237,6 +238,7 @@ async function main() {
     prisma.vehicle.create({
       data: {
         clientId: clients[1].id,
+        brand: 'Volkswagen',
         make: 'Volkswagen',
         model: 'Polo',
         year: 2019,
@@ -247,6 +249,7 @@ async function main() {
     prisma.vehicle.create({
       data: {
         clientId: clients[2].id,
+        brand: 'Kia',
         make: 'Kia',
         model: 'Rio',
         year: 2021,
@@ -257,6 +260,7 @@ async function main() {
     prisma.vehicle.create({
       data: {
         clientId: clients[3].id,
+        brand: 'Hyundai',
         make: 'Hyundai',
         model: 'Solaris',
         year: 2018,
@@ -267,6 +271,7 @@ async function main() {
     prisma.vehicle.create({
       data: {
         clientId: clients[4].id,
+        brand: 'Lada',
         make: 'Lada',
         model: 'Vesta',
         year: 2022,
