@@ -31,8 +31,22 @@
 
 ### Доменное имя
 
-- Зарегистрированный домен (например, `crm.yourdomain.com`)
-- DNS записи настроены на IP вашего сервера
+**Для этого проекта используются домены:**
+- **vyborsto.ru** - основное веб-приложение
+- **api.vyborsto.ru** - API эндпоинты
+
+**Необходимые DNS записи (A records):**
+```
+A     vyborsto.ru          -> IP вашего сервера
+A     www.vyborsto.ru      -> IP вашего сервера (опционально)
+A     api.vyborsto.ru      -> IP вашего сервера
+```
+
+Проверить DNS можно командой:
+```bash
+dig vyborsto.ru +short
+dig api.vyborsto.ru +short
+```
 
 ---
 
@@ -319,11 +333,18 @@ REDIS_URL="redis://:your_redis_password_here@localhost:6379"
 
 # NextAuth (сгенерировать секрет)
 NEXTAUTH_SECRET="ваш_секретный_ключ_минимум_32_символа"
-NEXTAUTH_URL="https://yourdomain.com"
+NEXTAUTH_URL="https://vyborsto.ru"
 
 # App
 NODE_ENV="production"
 PORT=3000
+
+# API URL
+NEXT_PUBLIC_API_URL="https://api.vyborsto.ru"
+
+# Domains
+DOMAIN="vyborsto.ru"
+API_DOMAIN="api.vyborsto.ru"
 ```
 
 **Генерация NEXTAUTH_SECRET:**
@@ -373,6 +394,12 @@ pnpm start
 
 ## Настройка Nginx
 
+> **💡 Быстрая установка:** Готовые конфигурации Nginx для доменов `vyborsto.ru` и `api.vyborsto.ru` находятся в папке `nginx-configs/`.
+>
+> Для быстрой установки смотрите инструкции в [nginx-configs/README.md](nginx-configs/README.md).
+>
+> Ниже описан ручной способ настройки для понимания процесса.
+
 ### Шаг 1: Установка Nginx
 
 ```bash
@@ -397,7 +424,7 @@ sudo nano /etc/nginx/sites-available/crm-autoshop
 server {
     listen 80;
     listen [::]:80;
-    server_name yourdomain.com www.yourdomain.com;
+    server_name vyborsto.ru www.vyborsto.ru;
 
     # Для Let's Encrypt проверки
     location /.well-known/acertme-challenge/ {
@@ -414,11 +441,11 @@ server {
 server {
     listen 443 ssl http2;
     listen [::]:443 ssl http2;
-    server_name yourdomain.com www.yourdomain.com;
+    server_name vyborsto.ru www.vyborsto.ru;
 
     # SSL сертификаты (будут добавлены после установки Let's Encrypt)
-    # ssl_certificate /etc/letsencrypt/live/yourdomain.com/fullchain.pem;
-    # ssl_certificate_key /etc/letsencrypt/live/yourdomain.com/privkey.pem;
+    # ssl_certificate /etc/letsencrypt/live/vyborsto.ru/fullchain.pem;
+    # ssl_certificate_key /etc/letsencrypt/live/vyborsto.ru/privkey.pem;
 
     # SSL настройки
     ssl_protocols TLSv1.2 TLSv1.3;
@@ -507,8 +534,11 @@ sudo apt install -y certbot python3-certbot-nginx
 ### Шаг 2: Получение SSL сертификата
 
 ```bash
-# Получение сертификата
-sudo certbot --nginx -d yourdomain.com -d www.yourdomain.com
+# Получение сертификата для основного домена
+sudo certbot --nginx -d vyborsto.ru -d www.vyborsto.ru
+
+# Получение сертификата для API поддомена
+sudo certbot --nginx -d api.vyborsto.ru
 
 # Следуйте инструкциям:
 # 1. Введите email для уведомлений
@@ -528,7 +558,8 @@ sudo certbot renew --dry-run
 ### Шаг 4: Проверка SSL
 
 Откройте в браузере:
-- `https://yourdomain.com`
+- `https://vyborsto.ru` - основное приложение
+- `https://api.vyborsto.ru/health` - API health check
 - Должна появиться зеленая иконка замка в адресной строке
 
 ---
