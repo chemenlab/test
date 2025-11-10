@@ -1,13 +1,15 @@
 'use client'
 
 import * as React from 'react'
-import { useParams } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Mail, Phone, Calendar, FileText, Car } from 'lucide-react'
+import { ArrowLeft, Mail, Phone, Calendar, FileText, Car, Edit, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
+import { EditClientDialog } from './components/edit-client-dialog'
+import { toast } from 'sonner'
 
 // Mock client data
 const mockClient = {
@@ -79,9 +81,37 @@ const mockClient = {
 
 export default function ClientDetailPage() {
   const params = useParams()
-  const client = mockClient // TODO: Fetch from API
+  const router = useRouter()
+  const [client, setClient] = React.useState(mockClient)
+  const [editDialogOpen, setEditDialogOpen] = React.useState(false)
 
   const totalSpent = client.orders.reduce((sum, order) => sum + order.total, 0)
+
+  const handleSaveClient = async (data: any) => {
+    // TODO: API call to update client
+    await new Promise(resolve => setTimeout(resolve, 1000))
+
+    setClient({
+      ...client,
+      ...data,
+    })
+  }
+
+  const handleDeleteClient = async () => {
+    if (!confirm('Вы уверены, что хотите удалить этого клиента? Это действие необратимо.')) {
+      return
+    }
+
+    try {
+      // TODO: API call to delete client
+      await new Promise(resolve => setTimeout(resolve, 1000))
+
+      toast.success('Клиент удален')
+      router.push('/dashboard/clients')
+    } catch (error) {
+      toast.error('Ошибка при удалении клиента')
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -97,7 +127,12 @@ export default function ClientDetailPage() {
             Клиент с {client.createdAt.toLocaleDateString('ru-RU')}
           </p>
         </div>
-        <Button>Редактировать</Button>
+        <Button variant="outline" size="icon" onClick={() => setEditDialogOpen(true)}>
+          <Edit className="h-4 w-4" />
+        </Button>
+        <Button variant="destructive" size="icon" onClick={handleDeleteClient}>
+          <Trash2 className="h-4 w-4" />
+        </Button>
       </div>
 
       <div className="grid gap-6 md:grid-cols-3">
@@ -276,6 +311,13 @@ export default function ClientDetailPage() {
           </div>
         </CardContent>
       </Card>
+
+      <EditClientDialog
+        client={client}
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        onSave={handleSaveClient}
+      />
     </div>
   )
 }
