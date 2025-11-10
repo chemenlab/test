@@ -1,0 +1,341 @@
+// Prisma Schema для CRM автосервиса
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Модель автосервиса (мультитенантность)
+model Tenant {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  logo        String?
+  phone       String?
+  email       String?
+  address     String?
+
+  // Настройки
+  settings    Json?
+
+  // Подписка
+  subscription Subscription?
+
+  // Связи
+  users       User[]
+  clients     Client[]
+  services    Service[]
+  workPosts   WorkPost[]
+  bookings    Booking[]
+  orders      Order[]
+  parts       Part[]
+  landings    Landing[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([slug])
+}
+
+// Подписка
+model Subscription {
+  id          String   @id @default(cuid())
+  tenantId    String   @unique
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  plan        String   // basic, pro, premium
+  status      String   // active, canceled, expired
+
+  startDate   DateTime
+  endDate     DateTime?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// Пользователи (мастера, администраторы)
+model User {
+  id          String   @id @default(cuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  email       String   @unique
+  name        String
+  role        String   // admin, master, manager
+  avatar      String?
+  phone       String?
+
+  // Связи
+  bookings    Booking[]
+  orders      Order[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([tenantId])
+  @@index([email])
+}
+
+// Клиенты
+model Client {
+  id          String   @id @default(cuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  name        String
+  phone       String
+  email       String?
+
+  // Метаданные
+  source      String?  // Источник: сайт, звонок, соцсети
+  tags        String[] // Теги для группировки
+  notes       String?  // Заметки
+
+  // Связи
+  vehicles    Vehicle[]
+  bookings    Booking[]
+  orders      Order[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([tenantId])
+  @@index([phone])
+}
+
+// Автомобили клиентов
+model Vehicle {
+  id          String   @id @default(cuid())
+  clientId    String
+  client      Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  brand       String   // Марка (Toyota, BMW, etc.)
+  model       String   // Модель (Camry, X5, etc.)
+  year        Int?
+  vin         String?
+  plateNumber String?  // Гос. номер
+
+  // Связи
+  bookings    Booking[]
+  orders      Order[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([clientId])
+}
+
+// Услуги
+model Service {
+  id          String   @id @default(cuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  name        String
+  description String?
+  price       Float
+  duration    Int      // Длительность в минутах
+  category    String?  // Категория услуги
+
+  // Связи
+  bookings    Booking[]
+  orderWorks  OrderWork[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([tenantId])
+}
+
+// Рабочие посты
+model WorkPost {
+  id          String   @id @default(cuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  name        String   // Пост 1, Пост 2, etc.
+  description String?
+
+  // Связи
+  bookings    Booking[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([tenantId])
+}
+
+// Записи (бронирования)
+model Booking {
+  id          String   @id @default(cuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  clientId    String
+  client      Client   @relation(fields: [clientId], references: [id])
+
+  vehicleId   String
+  vehicle     Vehicle  @relation(fields: [vehicleId], references: [id])
+
+  serviceId   String
+  service     Service  @relation(fields: [serviceId], references: [id])
+
+  masterId    String?
+  master      User?    @relation(fields: [masterId], references: [id])
+
+  workPostId  String?
+  workPost    WorkPost? @relation(fields: [workPostId], references: [id])
+
+  startTime   DateTime
+  endTime     DateTime
+  status      String   // pending, confirmed, in_progress, completed, canceled
+
+  notes       String?
+
+  // Связь с заказом
+  order       Order?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([tenantId])
+  @@index([clientId])
+  @@index([startTime])
+}
+
+// Заказ-наряды
+model Order {
+  id          String   @id @default(cuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  orderNumber String   @unique
+
+  clientId    String
+  client      Client   @relation(fields: [clientId], references: [id])
+
+  vehicleId   String
+  vehicle     Vehicle  @relation(fields: [vehicleId], references: [id])
+
+  masterId    String
+  master      User     @relation(fields: [masterId], references: [id])
+
+  bookingId   String?  @unique
+  booking     Booking? @relation(fields: [bookingId], references: [id])
+
+  status      String   // draft, in_progress, completed, paid, canceled
+
+  // Работы и запчасти
+  works       OrderWork[]
+  parts       OrderPart[]
+
+  // Финансы
+  subtotal    Float    @default(0)
+  discount    Float    @default(0)
+  total       Float    @default(0)
+
+  // Фото
+  photos      String[] // URLs фотографий
+
+  notes       String?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  completedAt DateTime?
+
+  @@index([tenantId])
+  @@index([clientId])
+  @@index([orderNumber])
+}
+
+// Работы в заказе
+model OrderWork {
+  id          String   @id @default(cuid())
+  orderId     String
+  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  serviceId   String
+  service     Service  @relation(fields: [serviceId], references: [id])
+
+  name        String   // Название работы
+  price       Float
+  quantity    Int      @default(1)
+  total       Float
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([orderId])
+}
+
+// Запчасти в заказе
+model OrderPart {
+  id          String   @id @default(cuid())
+  orderId     String
+  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  partId      String?
+  part        Part?    @relation(fields: [partId], references: [id])
+
+  name        String   // Название запчасти
+  article     String?  // Артикул
+  price       Float
+  quantity    Int
+  total       Float
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([orderId])
+}
+
+// Склад запчастей
+model Part {
+  id          String   @id @default(cuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  name        String
+  article     String?  // Артикул
+  brand       String?
+  category    String?
+
+  price       Float
+  stock       Int      @default(0)
+  minStock    Int      @default(0) // Минимальный остаток для алерта
+
+  // Связи
+  orderParts  OrderPart[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([tenantId])
+  @@index([article])
+}
+
+// Лендинги
+model Landing {
+  id          String   @id @default(cuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  name        String
+  slug        String   @unique
+  template    String   // classic, premium, minimal, tech, bright
+
+  // Контент
+  content     Json     // Хранение контента лендинга
+
+  published   Boolean  @default(false)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([tenantId])
+  @@index([slug])
+}
