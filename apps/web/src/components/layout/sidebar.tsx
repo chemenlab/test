@@ -3,6 +3,7 @@
 import * as React from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useTheme } from 'next-themes'
 import {
   LayoutDashboard,
   Users,
@@ -16,6 +17,9 @@ import {
   User2,
   LogOut,
   UserCog,
+  Sun,
+  Moon,
+  Monitor,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -27,8 +31,13 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuPortal,
 } from '@/components/ui/dropdown-menu'
 import { Badge } from '@/components/ui/badge'
+import { toast } from 'sonner'
 
 const menuItems = [
   {
@@ -83,6 +92,7 @@ const currentUser = {
 
 export function Sidebar() {
   const pathname = usePathname()
+  const { theme, setTheme } = useTheme()
   const [userRole, setUserRole] = React.useState(currentUser.role)
 
   const getRoleName = (role: string) => {
@@ -90,19 +100,47 @@ export function Sidebar() {
   }
 
   const getRoleColor = (role: string) => {
-    return role === 'admin' ? 'bg-purple-100 text-purple-900' : 'bg-blue-100 text-blue-900'
+    return role === 'admin' ? 'bg-purple-100 text-purple-900 dark:bg-purple-900 dark:text-purple-100' : 'bg-blue-100 text-blue-900 dark:bg-blue-900 dark:text-blue-100'
   }
 
   const handleSwitchRole = () => {
     const newRole = userRole === 'admin' ? 'mechanic' : 'admin'
     setUserRole(newRole)
     // TODO: API call to switch role
-    console.log('Switching role to:', newRole)
+    toast.success('Роль изменена', {
+      description: `Вы переключились на роль: ${getRoleName(newRole)}`,
+    })
   }
 
   const handleLogout = () => {
     // TODO: API call to logout
-    console.log('Logging out...')
+    toast.success('Выход выполнен', {
+      description: 'До скорой встречи!',
+    })
+    // После логаута можно редиректить на страницу логина
+    // router.push('/login')
+  }
+
+  const getThemeIcon = () => {
+    switch (theme) {
+      case 'light':
+        return <Sun className="mr-2 h-4 w-4" />
+      case 'dark':
+        return <Moon className="mr-2 h-4 w-4" />
+      default:
+        return <Monitor className="mr-2 h-4 w-4" />
+    }
+  }
+
+  const getThemeLabel = () => {
+    switch (theme) {
+      case 'light':
+        return 'Светлая'
+      case 'dark':
+        return 'Темная'
+      default:
+        return 'Системная'
+    }
   }
 
   return (
@@ -195,6 +233,30 @@ export function Sidebar() {
 
             <DropdownMenuSeparator />
 
+            {/* Theme Submenu */}
+            <DropdownMenuSub>
+              <DropdownMenuSubTrigger>
+                {getThemeIcon()}
+                <span>Тема: {getThemeLabel()}</span>
+              </DropdownMenuSubTrigger>
+              <DropdownMenuPortal>
+                <DropdownMenuSubContent>
+                  <DropdownMenuItem onClick={() => setTheme('light')}>
+                    <Sun className="mr-2 h-4 w-4" />
+                    <span>Светлая</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setTheme('dark')}>
+                    <Moon className="mr-2 h-4 w-4" />
+                    <span>Темная</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setTheme('system')}>
+                    <Monitor className="mr-2 h-4 w-4" />
+                    <span>Системная</span>
+                  </DropdownMenuItem>
+                </DropdownMenuSubContent>
+              </DropdownMenuPortal>
+            </DropdownMenuSub>
+
             <DropdownMenuItem onClick={handleSwitchRole}>
               <UserCog className="mr-2 h-4 w-4" />
               <span>Переключить роль</span>
@@ -207,7 +269,7 @@ export function Sidebar() {
 
             <DropdownMenuItem
               onClick={handleLogout}
-              className="text-red-600 focus:text-red-600"
+              className="text-red-600 focus:text-red-600 dark:text-red-400 dark:focus:text-red-400"
             >
               <LogOut className="mr-2 h-4 w-4" />
               <span>Выход</span>
