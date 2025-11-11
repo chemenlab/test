@@ -1,5 +1,6 @@
 'use client'
 
+import * as React from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
@@ -11,10 +12,23 @@ import {
   BarChart3,
   Settings,
   Wrench,
+  ChevronUp,
+  User2,
+  LogOut,
+  UserCog,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { Badge } from '@/components/ui/badge'
 
 const menuItems = [
   {
@@ -59,8 +73,37 @@ const menuItems = [
   },
 ]
 
+// Mock данные текущего пользователя
+const currentUser = {
+  name: 'Иван Петров',
+  email: 'ivan@autoservice.ru',
+  role: 'admin', // 'admin' или 'mechanic'
+  avatar: null,
+}
+
 export function Sidebar() {
   const pathname = usePathname()
+  const [userRole, setUserRole] = React.useState(currentUser.role)
+
+  const getRoleName = (role: string) => {
+    return role === 'admin' ? 'Администратор' : 'Мастер'
+  }
+
+  const getRoleColor = (role: string) => {
+    return role === 'admin' ? 'bg-purple-100 text-purple-900' : 'bg-blue-100 text-blue-900'
+  }
+
+  const handleSwitchRole = () => {
+    const newRole = userRole === 'admin' ? 'mechanic' : 'admin'
+    setUserRole(newRole)
+    // TODO: API call to switch role
+    console.log('Switching role to:', newRole)
+  }
+
+  const handleLogout = () => {
+    // TODO: API call to logout
+    console.log('Logging out...')
+  }
 
   return (
     <div className="flex h-full w-64 flex-col border-r bg-background">
@@ -92,16 +135,85 @@ export function Sidebar() {
           })}
         </nav>
       </div>
+
+      {/* User Menu Footer */}
       <div className="border-t p-4">
-        <div className="flex items-center gap-3 rounded-lg bg-muted p-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-primary-foreground">
-            <span className="text-sm font-semibold">АС</span>
-          </div>
-          <div className="flex-1 text-sm">
-            <div className="font-medium">Автосервис №1</div>
-            <div className="text-xs text-muted-foreground">Базовый тариф</div>
-          </div>
-        </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              className="w-full justify-start gap-3 px-3 h-auto py-2"
+            >
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                {currentUser.avatar ? (
+                  <img
+                    src={currentUser.avatar}
+                    alt={currentUser.name}
+                    className="h-full w-full rounded-full object-cover"
+                  />
+                ) : (
+                  <span className="text-sm font-semibold">
+                    {currentUser.name.split(' ').map(n => n[0]).join('')}
+                  </span>
+                )}
+              </div>
+              <div className="flex flex-1 flex-col items-start text-left text-sm">
+                <div className="font-medium">{currentUser.name}</div>
+                <div className="text-xs text-muted-foreground">{currentUser.email}</div>
+              </div>
+              <ChevronUp className="ml-auto h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent
+            side="top"
+            align="end"
+            className="w-56"
+          >
+            <DropdownMenuLabel>
+              <div className="flex flex-col space-y-1">
+                <p className="text-sm font-medium leading-none">{currentUser.name}</p>
+                <p className="text-xs leading-none text-muted-foreground">
+                  {currentUser.email}
+                </p>
+              </div>
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+
+            <DropdownMenuItem asChild>
+              <Link href="/dashboard/settings?tab=profile" className="cursor-pointer">
+                <User2 className="mr-2 h-4 w-4" />
+                <span>Профиль</span>
+              </Link>
+            </DropdownMenuItem>
+
+            <DropdownMenuItem asChild>
+              <Link href="/dashboard/settings" className="cursor-pointer">
+                <Settings className="mr-2 h-4 w-4" />
+                <span>Настройки</span>
+              </Link>
+            </DropdownMenuItem>
+
+            <DropdownMenuSeparator />
+
+            <DropdownMenuItem onClick={handleSwitchRole}>
+              <UserCog className="mr-2 h-4 w-4" />
+              <span>Переключить роль</span>
+              <Badge className={cn("ml-auto text-xs", getRoleColor(userRole))}>
+                {getRoleName(userRole)}
+              </Badge>
+            </DropdownMenuItem>
+
+            <DropdownMenuSeparator />
+
+            <DropdownMenuItem
+              onClick={handleLogout}
+              className="text-red-600 focus:text-red-600"
+            >
+              <LogOut className="mr-2 h-4 w-4" />
+              <span>Выход</span>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </div>
   )
