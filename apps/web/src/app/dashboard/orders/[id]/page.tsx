@@ -3,7 +3,7 @@
 import * as React from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Edit, FileText, CheckCircle, XCircle, Clock, DollarSign } from 'lucide-react'
+import { ArrowLeft, Edit, FileText, CheckCircle, XCircle, Clock, DollarSign, Printer } from 'lucide-react'
 import { format } from 'date-fns'
 import { ru } from 'date-fns/locale'
 import { Button } from '@/components/ui/button'
@@ -170,6 +170,20 @@ export default function OrderDetailPage() {
           <p className="text-muted-foreground">
             Создан {format(order.createdAt, 'd MMMM yyyy, HH:mm', { locale: ru })}
           </p>
+        </div>
+        <div className="flex gap-2">
+          <Link href={`/dashboard/orders/${params.id}/print`} target="_blank">
+            <Button variant="outline">
+              <Printer className="mr-2 h-4 w-4" />
+              Печать
+            </Button>
+          </Link>
+          <Link href={`/dashboard/orders/${params.id}/edit`}>
+            <Button variant="outline">
+              <Edit className="mr-2 h-4 w-4" />
+              Редактировать
+            </Button>
+          </Link>
         </div>
         <Select value={order.status} onValueChange={handleStatusChange}>
           <SelectTrigger className="w-[180px]">
