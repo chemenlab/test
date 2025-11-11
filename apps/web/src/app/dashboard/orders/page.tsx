@@ -2,7 +2,7 @@
 
 import * as React from 'react'
 import Link from 'next/link'
-import { Plus, Search, FileText, Calendar, ArrowUpDown, X } from 'lucide-react'
+import { Plus, Search, FileText, Calendar, ArrowUpDown, X, Download } from 'lucide-react'
 import { format, startOfMonth, endOfMonth, subDays, startOfDay, endOfDay } from 'date-fns'
 import { ru } from 'date-fns/locale'
 import { Button } from '@/components/ui/button'
@@ -11,6 +11,8 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Label } from '@/components/ui/label'
+import { downloadCSV, formatDateTimeForExport } from '@/lib/export'
+import { toast } from 'sonner'
 
 // Mock orders data - расширенный набор
 const mockOrders = [
@@ -231,6 +233,27 @@ export default function OrdersPage() {
 
   const hasActiveFilters = searchQuery || statusFilter !== 'all' || dateFrom || dateTo
 
+  // Экспорт данных
+  const handleExport = () => {
+    const exportData = filteredOrders.map((order) => ({
+      '№ Заказа': order.orderNumber,
+      'Дата создания': formatDateTimeForExport(order.createdAt),
+      'Клиент': order.client.name,
+      'Телефон': order.client.phone,
+      'Автомобиль': `${order.vehicle.brand} ${order.vehicle.model}`,
+      'Гос. номер': order.vehicle.plateNumber,
+      'Статус': getStatusLabel(order.status),
+      'Сумма': order.total,
+      'Дата завершения': order.completedAt ? formatDateTimeForExport(order.completedAt) : '',
+    }))
+
+    const filename = `orders_${format(new Date(), 'yyyy-MM-dd_HH-mm')}`
+    downloadCSV(exportData, filename)
+    toast.success('Данные экспортированы', {
+      description: `Файл ${filename}.csv загружен`,
+    })
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -239,12 +262,18 @@ export default function OrdersPage() {
           <h1 className="text-3xl font-bold tracking-tight">Заказы</h1>
           <p className="text-muted-foreground">Заказ-наряды и управление работами</p>
         </div>
-        <Link href="/dashboard/orders/new">
-          <Button>
-            <Plus className="mr-2 h-4 w-4" />
-            Создать заказ
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={handleExport}>
+            <Download className="mr-2 h-4 w-4" />
+            Экспорт
           </Button>
-        </Link>
+          <Link href="/dashboard/orders/new">
+            <Button>
+              <Plus className="mr-2 h-4 w-4" />
+              Создать заказ
+            </Button>
+          </Link>
+        </div>
       </div>
 
       {/* Statistics */}

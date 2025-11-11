@@ -1,11 +1,14 @@
 'use client'
 
 import * as React from 'react'
-import { Plus } from 'lucide-react'
+import { Plus, Download } from 'lucide-react'
+import { format } from 'date-fns'
 import { Button } from '@/components/ui/button'
 import { ClientsTable } from './components/clients-table'
 import { AddClientDialog } from './components/add-client-dialog'
 import { Client, CreateClientInput } from '@/lib/types'
+import { downloadCSV, formatDateTimeForExport } from '@/lib/export'
+import { toast } from 'sonner'
 
 // Mock data for development
 const mockClients: Client[] = [
@@ -127,6 +130,27 @@ export default function ClientsPage() {
     // TODO: Navigate to client detail page
   }
 
+  const handleExport = () => {
+    const exportData = clients.map((client) => ({
+      'ID': client.id,
+      'Имя': client.name,
+      'Телефон': client.phone,
+      'Email': client.email || '',
+      'Источник': client.source || '',
+      'Теги': client.tags.join(', '),
+      'Количество записей': client._count?.bookings || 0,
+      'Количество заказов': client._count?.orders || 0,
+      'Дата регистрации': formatDateTimeForExport(client.createdAt),
+      'Примечания': client.notes || '',
+    }))
+
+    const filename = `clients_${format(new Date(), 'yyyy-MM-dd_HH-mm')}`
+    downloadCSV(exportData, filename)
+    toast.success('Данные экспортированы', {
+      description: `Файл ${filename}.csv загружен`,
+    })
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -136,10 +160,16 @@ export default function ClientsPage() {
             Управление базой клиентов автосервиса
           </p>
         </div>
-        <Button onClick={() => setDialogOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          Добавить клиента
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={handleExport}>
+            <Download className="mr-2 h-4 w-4" />
+            Экспорт
+          </Button>
+          <Button onClick={() => setDialogOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            Добавить клиента
+          </Button>
+        </div>
       </div>
 
       <ClientsTable
