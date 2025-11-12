@@ -1,9 +1,12 @@
 // Client types
+export type ClientType = 'regular' | 'corporate' | 'wholesale'
+
 export interface Client {
   id: string
   name: string
   phone: string
   email: string | null
+  clientType: ClientType
   source: string | null
   tags: string[]
   notes: string | null
@@ -19,6 +22,7 @@ export interface CreateClientInput {
   name: string
   phone: string
   email?: string
+  clientType?: ClientType
   source?: string
   tags?: string[]
   notes?: string

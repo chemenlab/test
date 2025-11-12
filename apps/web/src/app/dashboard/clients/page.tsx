@@ -1,6 +1,7 @@
 'use client'
 
 import * as React from 'react'
+import { useRouter } from 'next/navigation'
 import { Plus, Download } from 'lucide-react'
 import { format } from 'date-fns'
 import { Button } from '@/components/ui/button'
@@ -17,6 +18,7 @@ const mockClients: Client[] = [
     name: 'Иван Петров',
     phone: '+7 (999) 123-45-67',
     email: 'ivan@example.com',
+    clientType: 'regular',
     source: 'website',
     tags: ['VIP'],
     notes: 'Постоянный клиент',
@@ -29,9 +31,10 @@ const mockClients: Client[] = [
   },
   {
     id: '2',
-    name: 'Мария Сидорова',
+    name: 'ООО "АвтоТранс"',
     phone: '+7 (999) 234-56-78',
     email: 'maria@example.com',
+    clientType: 'corporate',
     source: 'recommendation',
     tags: [],
     notes: null,
@@ -47,6 +50,7 @@ const mockClients: Client[] = [
     name: 'Алексей Смирнов',
     phone: '+7 (999) 345-67-89',
     email: null,
+    clientType: 'regular',
     source: 'phone',
     tags: [],
     notes: null,
@@ -59,12 +63,13 @@ const mockClients: Client[] = [
   },
   {
     id: '4',
-    name: 'Елена Волкова',
+    name: 'ИП "Логистика+"',
     phone: '+7 (999) 456-78-90',
     email: 'elena@example.com',
+    clientType: 'wholesale',
     source: 'social',
     tags: ['VIP'],
-    notes: 'Предпочитает мастера Дмитрия',
+    notes: 'Оптовый клиент, большие заказы',
     createdAt: new Date('2024-03-15'),
     updatedAt: new Date('2024-03-15'),
     _count: {
@@ -77,6 +82,7 @@ const mockClients: Client[] = [
     name: 'Дмитрий Козлов',
     phone: '+7 (999) 567-89-01',
     email: 'dmitry@example.com',
+    clientType: 'regular',
     source: 'advertising',
     tags: [],
     notes: null,
@@ -90,6 +96,7 @@ const mockClients: Client[] = [
 ]
 
 export default function ClientsPage() {
+  const router = useRouter()
   const [clients, setClients] = React.useState<Client[]>(mockClients)
   const [dialogOpen, setDialogOpen] = React.useState(false)
 
@@ -100,6 +107,7 @@ export default function ClientsPage() {
       name: data.name,
       phone: data.phone,
       email: data.email || null,
+      clientType: data.clientType || 'regular',
       source: data.source || null,
       tags: data.tags || [],
       notes: data.notes || null,
@@ -112,22 +120,26 @@ export default function ClientsPage() {
     }
 
     setClients([...clients, newClient])
+    toast.success('Клиент добавлен', {
+      description: `${newClient.name} успешно добавлен в базу`,
+    })
   }
 
   const handleEditClient = (client: Client) => {
-    console.log('Edit client:', client)
-    // TODO: Implement edit dialog
+    router.push(`/dashboard/clients/${client.id}?edit=true`)
   }
 
   const handleDeleteClient = (client: Client) => {
     if (confirm(`Вы уверены, что хотите удалить клиента ${client.name}?`)) {
       setClients(clients.filter((c) => c.id !== client.id))
+      toast.success('Клиент удален', {
+        description: `${client.name} удален из базы`,
+      })
     }
   }
 
   const handleViewClient = (client: Client) => {
-    console.log('View client:', client)
-    // TODO: Navigate to client detail page
+    router.push(`/dashboard/clients/${client.id}`)
   }
 
   const handleExport = () => {
