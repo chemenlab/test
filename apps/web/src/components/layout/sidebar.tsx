@@ -20,6 +20,7 @@ import {
   Sun,
   Moon,
   Monitor,
+  MessageSquare,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -74,6 +75,11 @@ const menuItems = [
     title: 'Аналитика',
     href: '/dashboard/analytics',
     icon: BarChart3,
+  },
+  {
+    title: 'Поддержка',
+    href: '/dashboard/support',
+    icon: MessageSquare,
   },
   {
     title: 'Настройки',
