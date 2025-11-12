@@ -1,13 +1,16 @@
 'use client'
 
-import { Bell, Search } from 'lucide-react'
+import { Search, Bell } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { SidebarTrigger } from '@/components/ui/sidebar'
+import { Separator } from '@/components/ui/separator'
 
 export function Header() {
   return (
-    <header className="flex h-16 items-center border-b bg-background px-6">
+    <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
+      <SidebarTrigger className="-ml-1" />
+      <Separator orientation="vertical" className="mr-2 h-4" />
       <div className="flex flex-1 items-center gap-4">
         <div className="relative w-full max-w-md">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -23,10 +26,6 @@ export function Header() {
           <Bell className="h-5 w-5" />
           <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-red-500" />
         </Button>
-        <Avatar>
-          <AvatarImage src="" alt="User" />
-          <AvatarFallback>АД</AvatarFallback>
-        </Avatar>
       </div>
     </header>
   )
