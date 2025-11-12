@@ -90,16 +90,6 @@ const menuItems = [
     icon: BarChart3,
   },
   {
-    title: 'База знаний',
-    href: '/dashboard/knowledge-base',
-    icon: BookOpen,
-  },
-  {
-    title: 'Поддержка',
-    href: '/dashboard/support',
-    icon: MessageSquare,
-  },
-  {
     title: 'Настройки',
     href: '/dashboard/settings',
     icon: Settings,
@@ -203,6 +193,32 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarContent>
       <SidebarFooter>
         <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              size="sm"
+              asChild
+              tooltip="База знаний"
+              isActive={pathname === '/dashboard/knowledge-base'}
+            >
+              <Link href="/dashboard/knowledge-base">
+                <BookOpen />
+                <span>База знаний</span>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              size="sm"
+              asChild
+              tooltip="Поддержка"
+              isActive={pathname === '/dashboard/support'}
+            >
+              <Link href="/dashboard/support">
+                <MessageSquare />
+                <span>Поддержка</span>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
           <SidebarMenuItem>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
