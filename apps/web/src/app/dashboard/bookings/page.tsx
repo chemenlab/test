@@ -258,12 +258,12 @@ export default function BookingsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Записи</h1>
           <p className="text-muted-foreground">Календарь записей и управление расписанием</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
             <PopoverTrigger asChild>
               <Button variant="outline">Выбрать дату</Button>
@@ -290,12 +290,12 @@ export default function BookingsPage() {
       </div>
 
       {/* Date Navigation */}
-      <div className="flex items-center justify-between border rounded-lg p-4">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between border rounded-lg p-4 gap-2">
         <Button variant="outline" size="icon" onClick={goToPreviousDay}>
           <ChevronLeft className="h-4 w-4" />
         </Button>
-        <div className="flex items-center gap-4">
-          <h2 className="text-xl font-semibold">
+        <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4 flex-1 justify-center">
+          <h2 className="text-lg sm:text-xl font-semibold text-center">
             {format(selectedDate, 'd MMMM yyyy', { locale: ru })}
           </h2>
           <Button variant="ghost" size="sm" onClick={goToToday}>

@@ -90,7 +90,8 @@ export default function OrderPrintPage() {
   const partsTotal = order.parts.reduce((sum, part) => sum + part.total, 0)
   const subtotal = worksTotal + partsTotal
   const discountAmount = (subtotal * order.discount) / 100
-  const total = subtotal - discountAmount
+  // For print, we don't apply discount (per requirements)
+  const total = subtotal
 
   const handlePrint = () => {
     window.print()
@@ -346,7 +347,7 @@ export default function OrderPrintPage() {
                   <span className="font-medium">{subtotal.toLocaleString()} ₽</span>
                 </div>
                 {order.discount > 0 && (
-                  <div className="flex justify-between text-sm text-green-700">
+                  <div className="flex justify-between text-sm text-green-700 no-print">
                     <span>Скидка ({order.discount}%):</span>
                     <span>-{discountAmount.toLocaleString()} ₽</span>
                   </div>

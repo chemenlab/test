@@ -29,10 +29,17 @@ import { toast } from 'sonner'
 
 // Mock данные
 const mockClients = [
-  { id: '1', name: 'Иван Петров', phone: '+7 (999) 123-45-67' },
-  { id: '2', name: 'Мария Сидорова', phone: '+7 (999) 234-56-78' },
-  { id: '3', name: 'Дмитрий Иванов', phone: '+7 (999) 345-67-89' },
+  { id: '1', name: 'Иван Петров', phone: '+7 (999) 123-45-67', clientType: 'regular' as const },
+  { id: '2', name: 'Мария Сидорова', phone: '+7 (999) 234-56-78', clientType: 'corporate' as const },
+  { id: '3', name: 'Дмитрий Иванов', phone: '+7 (999) 345-67-89', clientType: 'wholesale' as const },
 ]
+
+// Mock данные скидок (должны браться из настроек)
+const discountRates = {
+  regular: 0,
+  corporate: 5,
+  wholesale: 10,
+}
 
 const mockVehicles: Record<string, any[]> = {
   '1': [
@@ -198,19 +205,19 @@ export default function NewOrderPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
         <Link href="/dashboard/orders">
           <Button variant="ghost" size="icon">
             <ArrowLeft className="h-4 w-4" />
           </Button>
         </Link>
         <div className="flex-1">
-          <h1 className="text-3xl font-bold tracking-tight">Новый заказ-наряд</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Новый заказ-наряд</h1>
           <p className="text-muted-foreground">
             Создание нового заказа на обслуживание
           </p>
         </div>
-        <Button onClick={handleSave}>
+        <Button onClick={handleSave} className="w-full sm:w-auto">
           <Save className="mr-2 h-4 w-4" />
           Сохранить
         </Button>
@@ -230,6 +237,13 @@ export default function NewOrderPage() {
                 <Select value={clientId} onValueChange={(value) => {
                   setClientId(value)
                   setVehicleId('') // Сбросить выбор автомобиля
+
+                  // Автоматически применить скидку на основе типа клиента
+                  const client = mockClients.find(c => c.id === value)
+                  if (client) {
+                    const discountRate = discountRates[client.clientType]
+                    setDiscount(discountRate)
+                  }
                 }}>
                   <SelectTrigger>
                     <SelectValue placeholder="Выберите клиента" />
@@ -318,6 +332,11 @@ export default function NewOrderPage() {
                 value={discount}
                 onChange={(e) => setDiscount(Number(e.target.value))}
               />
+              {selectedClient && (
+                <p className="text-xs text-muted-foreground">
+                  Скидка применена автоматически на основе типа клиента
+                </p>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -351,16 +370,17 @@ export default function NewOrderPage() {
               Работы не добавлены
             </p>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Название</TableHead>
-                  <TableHead className="w-[120px]">Цена</TableHead>
-                  <TableHead className="w-[100px]">Кол-во</TableHead>
-                  <TableHead className="w-[120px]">Сумма</TableHead>
-                  <TableHead className="w-[60px]"></TableHead>
-                </TableRow>
-              </TableHeader>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Название</TableHead>
+                    <TableHead className="w-[120px]">Цена</TableHead>
+                    <TableHead className="w-[100px]">Кол-во</TableHead>
+                    <TableHead className="w-[120px]">Сумма</TableHead>
+                    <TableHead className="w-[60px]"></TableHead>
+                  </TableRow>
+                </TableHeader>
               <TableBody>
                 {works.map((work) => (
                   <TableRow key={work.id}>
@@ -398,6 +418,7 @@ export default function NewOrderPage() {
                 ))}
               </TableBody>
             </Table>
+            </div>
           )}
         </CardContent>
       </Card>
@@ -430,17 +451,18 @@ export default function NewOrderPage() {
               Запчасти не добавлены
             </p>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Название</TableHead>
-                  <TableHead>Артикул</TableHead>
-                  <TableHead className="w-[120px]">Цена</TableHead>
-                  <TableHead className="w-[100px]">Кол-во</TableHead>
-                  <TableHead className="w-[120px]">Сумма</TableHead>
-                  <TableHead className="w-[60px]"></TableHead>
-                </TableRow>
-              </TableHeader>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Название</TableHead>
+                    <TableHead>Артикул</TableHead>
+                    <TableHead className="w-[120px]">Цена</TableHead>
+                    <TableHead className="w-[100px]">Кол-во</TableHead>
+                    <TableHead className="w-[120px]">Сумма</TableHead>
+                    <TableHead className="w-[60px]"></TableHead>
+                  </TableRow>
+                </TableHeader>
               <TableBody>
                 {parts.map((part) => (
                   <TableRow key={part.id}>
@@ -479,6 +501,7 @@ export default function NewOrderPage() {
                 ))}
               </TableBody>
             </Table>
+            </div>
           )}
         </CardContent>
       </Card>

@@ -32,7 +32,7 @@ import {
 } from '@/components/ui/select'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { CreateClientInput } from '@/lib/types'
+import { CreateClientInput, ClientType } from '@/lib/types'
 
 const clientSchema = z.object({
   name: z.string().min(2, {
@@ -42,6 +42,7 @@ const clientSchema = z.object({
     message: 'Введите корректный номер телефона.',
   }),
   email: z.string().email({ message: 'Введите корректный email.' }).optional().or(z.literal('')),
+  clientType: z.enum(['regular', 'corporate', 'wholesale'] as const).optional(),
   source: z.string().optional(),
   notes: z.string().optional(),
 })
@@ -65,6 +66,7 @@ export function AddClientDialog({
       name: '',
       phone: '',
       email: '',
+      clientType: 'regular',
       source: '',
       notes: '',
     },
@@ -76,6 +78,7 @@ export function AddClientDialog({
       await onSubmit({
         ...values,
         email: values.email || undefined,
+        clientType: values.clientType || 'regular',
         source: values.source || undefined,
         notes: values.notes || undefined,
       })
@@ -144,6 +147,34 @@ export function AddClientDialog({
                       {...field}
                     />
                   </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="clientType"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Тип клиента</FormLabel>
+                  <Select
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Выберите тип клиента" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="regular">Обычный</SelectItem>
+                      <SelectItem value="corporate">Корпоративный</SelectItem>
+                      <SelectItem value="wholesale">Оптовик</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormDescription>
+                    Скидка применяется автоматически в зависимости от типа
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}

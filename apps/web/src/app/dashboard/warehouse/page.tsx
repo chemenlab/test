@@ -183,7 +183,7 @@ export default function WarehousePage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Склад</h1>
           <p className="text-muted-foreground">
@@ -310,19 +310,20 @@ export default function WarehousePage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Название</TableHead>
-                <TableHead>Артикул</TableHead>
-                <TableHead>Бренд</TableHead>
-                <TableHead>Категория</TableHead>
-                <TableHead>Остаток</TableHead>
-                <TableHead>Закупка</TableHead>
-                <TableHead>Розница</TableHead>
-                <TableHead className="text-right">Действия</TableHead>
-              </TableRow>
-            </TableHeader>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Название</TableHead>
+                  <TableHead>Артикул</TableHead>
+                  <TableHead>Бренд</TableHead>
+                  <TableHead>Категория</TableHead>
+                  <TableHead>Остаток</TableHead>
+                  <TableHead>Закупка</TableHead>
+                  <TableHead>Розница</TableHead>
+                  <TableHead className="text-right">Действия</TableHead>
+                </TableRow>
+              </TableHeader>
             <TableBody>
               {filteredParts.length === 0 ? (
                 <TableRow>
@@ -374,6 +375,7 @@ export default function WarehousePage() {
               )}
             </TableBody>
           </Table>
+          </div>
         </CardContent>
       </Card>
 

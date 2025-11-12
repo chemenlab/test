@@ -34,6 +34,12 @@ const tenantSchema = z.object({
   workingHoursWeekend: z.string().optional(),
 })
 
+const discountSchema = z.object({
+  regularDiscount: z.coerce.number().min(0).max(100),
+  corporateDiscount: z.coerce.number().min(0).max(100),
+  wholesaleDiscount: z.coerce.number().min(0).max(100),
+})
+
 // Mock данные
 const mockTenantData = {
   name: 'Автосервис №1',
@@ -47,13 +53,25 @@ const mockTenantData = {
   workingHoursWeekend: '10:00 - 18:00',
 }
 
+const mockDiscountData = {
+  regularDiscount: 0,
+  corporateDiscount: 5,
+  wholesaleDiscount: 10,
+}
+
 export function TenantSettings() {
   const [isLoading, setIsLoading] = React.useState(false)
+  const [isLoadingDiscounts, setIsLoadingDiscounts] = React.useState(false)
   const [logoPreview, setLogoPreview] = React.useState<string | null>(null)
 
   const form = useForm<z.infer<typeof tenantSchema>>({
     resolver: zodResolver(tenantSchema),
     defaultValues: mockTenantData,
+  })
+
+  const discountForm = useForm<z.infer<typeof discountSchema>>({
+    resolver: zodResolver(discountSchema),
+    defaultValues: mockDiscountData,
   })
 
   async function onSubmit(values: z.infer<typeof tenantSchema>) {
@@ -69,6 +87,22 @@ export function TenantSettings() {
       toast.error('Ошибка при сохранении настроек')
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  async function onSubmitDiscounts(values: z.infer<typeof discountSchema>) {
+    setIsLoadingDiscounts(true)
+    try {
+      // TODO: API call
+      await new Promise(resolve => setTimeout(resolve, 1000))
+
+      toast.success('Скидки сохранены', {
+        description: 'Настройки скидок для типов клиентов обновлены',
+      })
+    } catch (error) {
+      toast.error('Ошибка при сохранении скидок')
+    } finally {
+      setIsLoadingDiscounts(false)
     }
   }
 
@@ -296,6 +330,119 @@ export function TenantSettings() {
                 <Button type="submit" disabled={isLoading}>
                   <Save className="mr-2 h-4 w-4" />
                   {isLoading ? 'Сохранение...' : 'Сохранить изменения'}
+                </Button>
+              </div>
+            </form>
+          </Form>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Скидки по типам клиентов</CardTitle>
+          <CardDescription>
+            Настройте скидки для разных типов клиентов. Скидки будут автоматически применяться при создании заказов.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Form {...discountForm}>
+            <form onSubmit={discountForm.handleSubmit(onSubmitDiscounts)} className="space-y-6">
+              <div className="grid gap-6 md:grid-cols-3">
+                <FormField
+                  control={discountForm.control}
+                  name="regularDiscount"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Обычный клиент</FormLabel>
+                      <FormControl>
+                        <div className="relative">
+                          <Input
+                            type="number"
+                            min="0"
+                            max="100"
+                            placeholder="0"
+                            {...field}
+                          />
+                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                            %
+                          </span>
+                        </div>
+                      </FormControl>
+                      <FormDescription>
+                        Скидка для обычных клиентов
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={discountForm.control}
+                  name="corporateDiscount"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Корпоративный клиент</FormLabel>
+                      <FormControl>
+                        <div className="relative">
+                          <Input
+                            type="number"
+                            min="0"
+                            max="100"
+                            placeholder="5"
+                            {...field}
+                          />
+                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                            %
+                          </span>
+                        </div>
+                      </FormControl>
+                      <FormDescription>
+                        Скидка для корпоративных клиентов
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={discountForm.control}
+                  name="wholesaleDiscount"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Оптовик</FormLabel>
+                      <FormControl>
+                        <div className="relative">
+                          <Input
+                            type="number"
+                            min="0"
+                            max="100"
+                            placeholder="10"
+                            {...field}
+                          />
+                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                            %
+                          </span>
+                        </div>
+                      </FormControl>
+                      <FormDescription>
+                        Скидка для оптовых клиентов
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <div className="rounded-lg border bg-muted/50 p-4">
+                <p className="text-sm text-muted-foreground">
+                  <strong>Примечание:</strong> Скидки будут автоматически применяться при создании заказов в зависимости от типа клиента. В печатной версии заказ-наряда скидка отображаться не будет.
+                </p>
+              </div>
+
+              <div className="flex justify-end">
+                <Button type="submit" disabled={isLoadingDiscounts}>
+                  <Save className="mr-2 h-4 w-4" />
+                  {isLoadingDiscounts ? 'Сохранение...' : 'Сохранить скидки'}
                 </Button>
               </div>
             </form>
