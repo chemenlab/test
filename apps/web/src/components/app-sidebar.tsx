@@ -22,6 +22,7 @@ import {
   Monitor,
   MessageSquare,
   ChevronsUpDown,
+  BookOpen,
 } from 'lucide-react'
 
 import {
@@ -87,6 +88,11 @@ const menuItems = [
     title: 'Аналитика',
     href: '/dashboard/analytics',
     icon: BarChart3,
+  },
+  {
+    title: 'База знаний',
+    href: '/dashboard/knowledge-base',
+    icon: BookOpen,
   },
   {
     title: 'Поддержка',
