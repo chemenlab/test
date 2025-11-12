@@ -3,7 +3,7 @@
 import * as React from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Edit, FileText, CheckCircle, XCircle, Clock, DollarSign, Printer } from 'lucide-react'
+import { ArrowLeft, Edit, FileText, CheckCircle, XCircle, Clock, DollarSign, Printer, Image as ImageIcon, X } from 'lucide-react'
 import { format } from 'date-fns'
 import { ru } from 'date-fns/locale'
 import { Button } from '@/components/ui/button'
@@ -25,6 +25,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { FileUpload } from '@/components/ui/file-upload'
 import { toast } from 'sonner'
 
 // Mock данные заказа
@@ -91,12 +98,18 @@ const mockOrder = {
   ],
   discount: 5, // процент
   notes: 'Клиент просил использовать оригинальные запчасти. Позвонить после завершения работ.',
+  photos: {
+    before: [] as string[],
+    after: [] as string[],
+  },
 }
 
 export default function OrderDetailPage() {
   const params = useParams()
   const router = useRouter()
   const [order, setOrder] = React.useState(mockOrder)
+  const [selectedPhoto, setSelectedPhoto] = React.useState<string | null>(null)
+  const [photoDialogOpen, setPhotoDialogOpen] = React.useState(false)
 
   const worksTotal = order.works.reduce((sum, work) => sum + work.total, 0)
   const partsTotal = order.parts.reduce((sum, part) => sum + part.total, 0)
@@ -344,6 +357,108 @@ export default function OrderDetailPage() {
           </CardContent>
         </Card>
       )}
+
+      {/* Фотофиксация */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Фотофиксация</CardTitle>
+              <CardDescription>Фотографии до и после ремонта</CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Фото ДО */}
+          <div className="space-y-3">
+            <h3 className="text-sm font-semibold flex items-center gap-2">
+              <ImageIcon className="h-4 w-4" />
+              Фото ДО ремонта
+            </h3>
+            <FileUpload
+              value={order.photos.before}
+              onChange={(files) => {
+                setOrder({ ...order, photos: { ...order.photos, before: files } })
+                toast.success('Фотографии добавлены')
+              }}
+              maxFiles={10}
+            />
+          </div>
+
+          <Separator />
+
+          {/* Фото ПОСЛЕ */}
+          <div className="space-y-3">
+            <h3 className="text-sm font-semibold flex items-center gap-2">
+              <ImageIcon className="h-4 w-4" />
+              Фото ПОСЛЕ ремонта
+            </h3>
+            <FileUpload
+              value={order.photos.after}
+              onChange={(files) => {
+                setOrder({ ...order, photos: { ...order.photos, after: files } })
+                toast.success('Фотографии добавлены')
+              }}
+              maxFiles={10}
+            />
+          </div>
+
+          {/* Просмотр всех фото */}
+          {(order.photos.before.length > 0 || order.photos.after.length > 0) && (
+            <div className="pt-4">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  if (order.photos.before.length > 0) {
+                    setSelectedPhoto(order.photos.before[0])
+                  } else if (order.photos.after.length > 0) {
+                    setSelectedPhoto(order.photos.after[0])
+                  }
+                  setPhotoDialogOpen(true)
+                }}
+              >
+                <ImageIcon className="mr-2 h-4 w-4" />
+                Просмотреть все фото ({order.photos.before.length + order.photos.after.length})
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Photo Viewer Dialog */}
+      <Dialog open={photoDialogOpen} onOpenChange={setPhotoDialogOpen}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>Просмотр фотографий</DialogTitle>
+          </DialogHeader>
+          {selectedPhoto && (
+            <div className="space-y-4">
+              <img
+                src={selectedPhoto}
+                alt="Фото заказа"
+                className="w-full h-auto max-h-[600px] object-contain rounded-lg"
+              />
+              <div className="flex gap-2 overflow-x-auto pb-2">
+                {[...order.photos.before, ...order.photos.after].map((photo, index) => (
+                  <button
+                    key={index}
+                    onClick={() => setSelectedPhoto(photo)}
+                    className={`shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-colors ${
+                      selectedPhoto === photo ? 'border-primary' : 'border-transparent'
+                    }`}
+                  >
+                    <img
+                      src={photo}
+                      alt={`Thumbnail ${index + 1}`}
+                      className="w-full h-full object-cover"
+                    />
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Итоги */}
       <Card>
