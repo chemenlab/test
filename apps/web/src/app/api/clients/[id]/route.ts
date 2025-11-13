@@ -22,11 +22,10 @@ let mockClients = [
 // GET /api/clients/[id] - Получить клиента по ID
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = await params
-    const client = mockClients.find((c) => c.id === id)
+    const client = mockClients.find((c) => c.id === params.id)
 
     if (!client) {
       return NextResponse.json({ error: 'Client not found' }, { status: 404 })
@@ -44,12 +43,11 @@ export async function GET(
 // PATCH /api/clients/[id] - Обновить клиента
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = await params
     const body = await request.json()
-    const clientIndex = mockClients.findIndex((c) => c.id === id)
+    const clientIndex = mockClients.findIndex((c) => c.id === params.id)
 
     if (clientIndex === -1) {
       return NextResponse.json({ error: 'Client not found' }, { status: 404 })
@@ -74,11 +72,10 @@ export async function PATCH(
 // DELETE /api/clients/[id] - Удалить клиента
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = await params
-    const clientIndex = mockClients.findIndex((c) => c.id === id)
+    const clientIndex = mockClients.findIndex((c) => c.id === params.id)
 
     if (clientIndex === -1) {
       return NextResponse.json({ error: 'Client not found' }, { status: 404 })

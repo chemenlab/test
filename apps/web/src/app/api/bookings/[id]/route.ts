@@ -21,11 +21,10 @@ let mockBookings = [
 // GET /api/bookings/[id] - Получить запись по ID
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = await params
-    const booking = mockBookings.find((b) => b.id === id)
+    const booking = mockBookings.find((b) => b.id === params.id)
 
     if (!booking) {
       return NextResponse.json({ error: 'Booking not found' }, { status: 404 })
@@ -40,12 +39,11 @@ export async function GET(
 // PATCH /api/bookings/[id] - Обновить запись
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = await params
     const body = await request.json()
-    const bookingIndex = mockBookings.findIndex((b) => b.id === id)
+    const bookingIndex = mockBookings.findIndex((b) => b.id === params.id)
 
     if (bookingIndex === -1) {
       return NextResponse.json({ error: 'Booking not found' }, { status: 404 })
@@ -67,11 +65,10 @@ export async function PATCH(
 // DELETE /api/bookings/[id] - Удалить запись
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = await params
-    const bookingIndex = mockBookings.findIndex((b) => b.id === id)
+    const bookingIndex = mockBookings.findIndex((b) => b.id === params.id)
 
     if (bookingIndex === -1) {
       return NextResponse.json({ error: 'Booking not found' }, { status: 404 })
