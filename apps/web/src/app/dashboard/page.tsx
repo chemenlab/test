@@ -24,12 +24,31 @@ import {
   ChevronRight,
   Circle,
   UserCheck,
+  X,
+  MapPin,
+  Car,
+  Filter,
 } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 
@@ -195,6 +214,20 @@ const mockActiveOrders = [
 export default function DashboardPage() {
   const router = useRouter()
   const [workPosts, setWorkPosts] = React.useState<WorkPost[]>(initialWorkPosts)
+  const [selectedBooking, setSelectedBooking] = React.useState<Booking | null>(null)
+  const [selectedPost, setSelectedPost] = React.useState<string | null>(null)
+  const [isModalOpen, setIsModalOpen] = React.useState(false)
+  const [statusFilter, setStatusFilter] = React.useState<string>('all')
+  const [currentTime, setCurrentTime] = React.useState(new Date())
+
+  // Автообновление текущего времени каждую минуту
+  React.useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date())
+    }, 60000) // Обновляем каждую минуту
+
+    return () => clearInterval(timer)
+  }, [])
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -252,9 +285,23 @@ export default function DashboardPage() {
 
   const urgentNotifications = mockNotifications.filter(n => n.urgent)
 
-  // Обработчик клика на запись - открывает детали
-  const handleBookingClick = (bookingId: string) => {
-    router.push(`/dashboard/bookings?id=${bookingId}`)
+  // Фильтрация записей по статусу
+  const getFilteredPosts = () => {
+    if (statusFilter === 'all') {
+      return workPosts
+    }
+
+    return workPosts.map(post => ({
+      ...post,
+      bookings: post.bookings.filter(b => b.status === statusFilter)
+    }))
+  }
+
+  // Обработчик клика на запись - открывает модальное окно
+  const handleBookingClick = (booking: Booking, postName: string) => {
+    setSelectedBooking(booking)
+    setSelectedPost(postName)
+    setIsModalOpen(true)
   }
 
   // Обработчик быстрого обновления статуса "Клиент пришел"
@@ -282,18 +329,39 @@ export default function DashboardPage() {
   }
 
   // Обработчик звонка
-  const handleCall = (phone: string, e: React.MouseEvent) => {
-    e.stopPropagation()
+  const handleCall = (phone: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation()
     window.location.href = `tel:${phone}`
   }
 
   // Обработчик сообщения (WhatsApp)
-  const handleMessage = (phone: string, e: React.MouseEvent) => {
-    e.stopPropagation()
+  const handleMessage = (phone: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation()
     // Убираем + из номера для WhatsApp
     const cleanPhone = phone.replace(/\+/g, '')
     window.open(`https://wa.me/${cleanPhone}`, '_blank')
   }
+
+  // Обработчик смены статуса из модального окна
+  const handleStatusChange = (newStatus: 'completed' | 'in_progress' | 'pending') => {
+    if (!selectedBooking) return
+
+    setWorkPosts(prevPosts =>
+      prevPosts.map(post => ({
+        ...post,
+        bookings: post.bookings.map(booking =>
+          booking.id === selectedBooking.id
+            ? { ...booking, status: newStatus }
+            : booking
+        ),
+      }))
+    )
+
+    setSelectedBooking({ ...selectedBooking, status: newStatus })
+    toast.success('Статус обновлен')
+  }
+
+  const filteredPosts = getFilteredPosts()
 
   return (
     <div className="flex flex-1 flex-col gap-6">
@@ -302,7 +370,8 @@ export default function DashboardPage() {
         <div>
           <h2 className="text-3xl font-bold tracking-tight">Рабочий день</h2>
           <p className="text-muted-foreground">
-            {format(new Date(), 'd MMMM yyyy, EEEE', { locale: ru })}
+            {format(currentTime, 'd MMMM yyyy, EEEE', { locale: ru })}
+            <span className="ml-2 text-sm">• {format(currentTime, 'HH:mm')}</span>
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -388,113 +457,131 @@ export default function DashboardPage() {
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Записи на сегодня - 2 колонки */}
         <div className="lg:col-span-2 space-y-6">
-          <div>
-            <h3 className="text-lg font-semibold mb-4">Записи по постам</h3>
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-semibold">Записи по постам</h3>
 
-            <div className="space-y-4">
-              {workPosts.map((post) => (
-                <Card key={post.id}>
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-                          <Wrench className="h-5 w-5 text-primary" />
-                        </div>
-                        <div>
-                          <CardTitle className="text-base">{post.name}</CardTitle>
-                          <CardDescription className="text-sm">
-                            Мастер: {post.master}
-                          </CardDescription>
-                        </div>
+            {/* Фильтр по статусам */}
+            <div className="flex items-center gap-2">
+              <Filter className="h-4 w-4 text-muted-foreground" />
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Все записи" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Все записи</SelectItem>
+                  <SelectItem value="pending">Ожидают</SelectItem>
+                  <SelectItem value="in_progress">В работе</SelectItem>
+                  <SelectItem value="completed">Завершено</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            {filteredPosts.map((post) => (
+              <Card key={post.id}>
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+                        <Wrench className="h-5 w-5 text-primary" />
                       </div>
-                      <Badge variant="outline">
-                        {post.bookings.length} {post.bookings.length === 1 ? 'запись' : 'записей'}
-                      </Badge>
+                      <div>
+                        <CardTitle className="text-base">{post.name}</CardTitle>
+                        <CardDescription className="text-sm">
+                          Мастер: {post.master}
+                        </CardDescription>
+                      </div>
                     </div>
-                  </CardHeader>
-                  <CardContent>
-                    {post.bookings.length === 0 ? (
-                      <div className="flex flex-col items-center justify-center py-8 text-center">
-                        <Calendar className="h-12 w-12 text-muted-foreground/50 mb-2" />
-                        <p className="text-sm text-muted-foreground mb-4">
-                          Нет записей на сегодня
-                        </p>
+                    <Badge variant="outline">
+                      {post.bookings.length} {post.bookings.length === 1 ? 'запись' : 'записей'}
+                    </Badge>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {post.bookings.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-8 text-center">
+                      <Calendar className="h-12 w-12 text-muted-foreground/50 mb-2" />
+                      <p className="text-sm text-muted-foreground mb-4">
+                        {statusFilter === 'all' ? 'Нет записей на сегодня' : 'Нет записей с этим статусом'}
+                      </p>
+                      {statusFilter === 'all' && (
                         <Link href="/dashboard/bookings">
                           <Button variant="outline" size="sm">
                             <Plus className="mr-2 h-4 w-4" />
                             Добавить запись
                           </Button>
                         </Link>
-                      </div>
-                    ) : (
-                      <div className="space-y-3">
-                        {post.bookings.map((booking) => (
-                          <div
-                            key={booking.id}
-                            onClick={() => handleBookingClick(booking.id)}
-                            className={cn(
-                              "flex items-start gap-3 rounded-lg border p-3 transition-all cursor-pointer",
-                              "hover:shadow-md hover:scale-[1.01]",
-                              getStatusColor(booking.status)
+                      )}
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {post.bookings.map((booking) => (
+                        <div
+                          key={booking.id}
+                          onClick={() => handleBookingClick(booking, post.name)}
+                          className={cn(
+                            "flex items-start gap-3 rounded-lg border p-3 transition-all cursor-pointer",
+                            "hover:shadow-md hover:scale-[1.01]",
+                            getStatusColor(booking.status)
+                          )}
+                        >
+                          <div className="flex flex-col items-center pt-1 min-w-[50px]">
+                            <div className="text-sm font-semibold">{booking.time}</div>
+                            <div className="text-xs text-muted-foreground">{booking.endTime}</div>
+                          </div>
+
+                          <Separator orientation="vertical" className="h-14" />
+
+                          <div className="flex-1 space-y-1 min-w-0">
+                            <div className="flex items-center justify-between gap-2">
+                              <p className="font-medium truncate">{booking.client}</p>
+                              {getStatusIcon(booking.status)}
+                            </div>
+                            <p className="text-sm text-muted-foreground truncate">{booking.vehicle}</p>
+                            <p className="text-sm truncate">{booking.service}</p>
+                          </div>
+
+                          <div className="flex flex-col gap-1">
+                            {booking.status === 'pending' && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-8 px-2 text-xs whitespace-nowrap"
+                                onClick={(e) => handleClientArrived(post.id, booking.id, e)}
+                              >
+                                <UserCheck className="mr-1 h-3 w-3" />
+                                Пришел
+                              </Button>
                             )}
-                          >
-                            <div className="flex flex-col items-center pt-1 min-w-[50px]">
-                              <div className="text-sm font-semibold">{booking.time}</div>
-                              <div className="text-xs text-muted-foreground">{booking.endTime}</div>
-                            </div>
-
-                            <Separator orientation="vertical" className="h-14" />
-
-                            <div className="flex-1 space-y-1 min-w-0">
-                              <div className="flex items-center justify-between gap-2">
-                                <p className="font-medium truncate">{booking.client}</p>
-                                {getStatusIcon(booking.status)}
-                              </div>
-                              <p className="text-sm text-muted-foreground truncate">{booking.vehicle}</p>
-                              <p className="text-sm truncate">{booking.service}</p>
-                            </div>
-
-                            <div className="flex flex-col gap-1">
-                              {booking.status === 'pending' && (
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="h-8 px-2 text-xs whitespace-nowrap"
-                                  onClick={(e) => handleClientArrived(post.id, booking.id, e)}
-                                >
-                                  <UserCheck className="mr-1 h-3 w-3" />
-                                  Пришел
-                                </Button>
-                              )}
-                              <div className="flex gap-1">
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-8 w-8 p-0"
-                                  onClick={(e) => handleCall(booking.phone, e)}
-                                  title="Позвонить"
-                                >
-                                  <Phone className="h-4 w-4" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-8 w-8 p-0"
-                                  onClick={(e) => handleMessage(booking.phone, e)}
-                                  title="WhatsApp"
-                                >
-                                  <MessageSquare className="h-4 w-4" />
-                                </Button>
-                              </div>
+                            <div className="flex gap-1">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 w-8 p-0"
+                                onClick={(e) => handleCall(booking.phone, e)}
+                                title="Позвонить"
+                              >
+                                <Phone className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 w-8 p-0"
+                                onClick={(e) => handleMessage(booking.phone, e)}
+                                title="WhatsApp"
+                              >
+                                <MessageSquare className="h-4 w-4" />
+                              </Button>
                             </div>
                           </div>
-                        ))}
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            ))}
           </div>
         </div>
 
@@ -638,6 +725,114 @@ export default function DashboardPage() {
           </Card>
         </div>
       </div>
+
+      {/* Модальное окно с деталями записи */}
+      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Детали записи</DialogTitle>
+            <DialogDescription>
+              {selectedPost && `${selectedPost} • ${selectedBooking?.time} - ${selectedBooking?.endTime}`}
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedBooking && (
+            <div className="space-y-6">
+              {/* Статус */}
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium">Статус</span>
+                <Select
+                  value={selectedBooking.status}
+                  onValueChange={(value) => handleStatusChange(value as any)}
+                >
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pending">Ожидает</SelectItem>
+                    <SelectItem value="in_progress">В работе</SelectItem>
+                    <SelectItem value="completed">Завершено</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <Separator />
+
+              {/* Информация о клиенте */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <Users className="h-5 w-5 text-muted-foreground" />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium">Клиент</p>
+                    <p className="text-sm text-muted-foreground">{selectedBooking.client}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <Phone className="h-5 w-5 text-muted-foreground" />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium">Телефон</p>
+                    <p className="text-sm text-muted-foreground">{selectedBooking.phone}</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleCall(selectedBooking.phone)}
+                    >
+                      Позвонить
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleMessage(selectedBooking.phone)}
+                    >
+                      WhatsApp
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <Car className="h-5 w-5 text-muted-foreground" />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium">Автомобиль</p>
+                    <p className="text-sm text-muted-foreground">{selectedBooking.vehicle}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <Wrench className="h-5 w-5 text-muted-foreground" />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium">Услуга</p>
+                    <p className="text-sm text-muted-foreground">{selectedBooking.service}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <Clock className="h-5 w-5 text-muted-foreground" />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium">Время</p>
+                    <p className="text-sm text-muted-foreground">
+                      {selectedBooking.time} - {selectedBooking.endTime}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsModalOpen(false)}>
+              Закрыть
+            </Button>
+            <Link href={`/dashboard/bookings?id=${selectedBooking?.id}`}>
+              <Button>
+                Редактировать
+              </Button>
+            </Link>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
