@@ -2,7 +2,7 @@
 
 import * as React from 'react'
 import Link from 'next/link'
-import { format, subDays } from 'date-fns'
+import { format } from 'date-fns'
 import { ru } from 'date-fns/locale'
 import {
   Users,
@@ -15,112 +15,132 @@ import {
   AlertTriangle,
   Clock,
   CheckCircle,
-  TrendingUp,
-  TrendingDown,
-  Activity,
+  Phone,
+  MessageSquare,
+  UserPlus,
+  Warehouse,
   Bell,
-  ArrowRight,
-  ArrowUpRight,
-  ArrowDownRight,
+  ChevronRight,
+  Circle,
 } from 'lucide-react'
-import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis, CartesianGrid } from 'recharts'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { cn } from '@/lib/utils'
 
-// Mock данные для графика выручки
-const mockRevenueData = Array.from({ length: 30 }, (_, i) => {
-  const date = subDays(new Date(), 29 - i)
-  return {
-    date: format(date, 'd MMM', { locale: ru }),
-    revenue: Math.floor(Math.random() * 50000) + 10000,
-  }
-})
-
-// Mock данные для последних действий
-const mockRecentActivity = [
+// Mock данные записей на сегодня, сгруппированных по постам
+const mockWorkPosts = [
   {
     id: '1',
-    type: 'booking',
-    message: 'Новая запись создана',
-    client: 'Иван Петров',
-    details: 'Toyota Camry - Замена масла',
-    time: new Date(Date.now() - 1000 * 60 * 5),
+    name: 'Пост 1',
+    master: 'Дмитрий М.',
+    bookings: [
+      {
+        id: '1',
+        time: '10:00',
+        endTime: '11:00',
+        client: 'Иван Петров',
+        phone: '+7 (999) 123-45-67',
+        vehicle: 'Toyota Camry',
+        service: 'Замена масла',
+        status: 'completed',
+      },
+      {
+        id: '2',
+        time: '11:30',
+        endTime: '12:30',
+        client: 'Мария Сидорова',
+        phone: '+7 (999) 234-56-78',
+        vehicle: 'BMW X5',
+        service: 'Диагностика',
+        status: 'in_progress',
+      },
+      {
+        id: '3',
+        time: '14:30',
+        endTime: '16:00',
+        client: 'Елена Волкова',
+        phone: '+7 (999) 456-78-90',
+        vehicle: 'Audi A4',
+        service: 'Тормозные колодки',
+        status: 'pending',
+      },
+    ],
   },
   {
     id: '2',
-    type: 'order',
-    message: 'Заказ-наряд завершен',
-    client: 'Мария Сидорова',
-    details: 'ORD-2024-045',
-    time: new Date(Date.now() - 1000 * 60 * 15),
+    name: 'Пост 2',
+    master: 'Алексей С.',
+    bookings: [
+      {
+        id: '4',
+        time: '13:00',
+        endTime: '14:00',
+        client: 'Алексей Смирнов',
+        phone: '+7 (999) 345-67-89',
+        vehicle: 'Mercedes C-Class',
+        service: 'Шиномонтаж',
+        status: 'in_progress',
+      },
+      {
+        id: '5',
+        time: '16:00',
+        endTime: '17:30',
+        client: 'Дмитрий Козлов',
+        phone: '+7 (999) 567-89-01',
+        vehicle: 'Volkswagen Polo',
+        service: 'ТО',
+        status: 'pending',
+      },
+    ],
   },
   {
     id: '3',
-    type: 'client',
-    message: 'Новый клиент зарегистрирован',
-    client: 'Алексей Смирнов',
-    details: '+7 (999) 345-67-89',
-    time: new Date(Date.now() - 1000 * 60 * 30),
-  },
-  {
-    id: '4',
-    type: 'warehouse',
-    message: 'Низкий остаток на складе',
-    client: 'Масляный фильтр',
-    details: 'Осталось 3 шт',
-    time: new Date(Date.now() - 1000 * 60 * 60),
+    name: 'Пост 3',
+    master: 'Не назначен',
+    bookings: [],
   },
 ]
 
-// Mock данные сегодняшних записей
-const mockTodayBookings = [
+// Mock данные уведомлений
+const mockNotifications = [
   {
     id: '1',
-    time: '10:00',
-    client: 'Иван Петров',
-    vehicle: 'Toyota Camry',
-    service: 'Замена масла',
-    status: 'completed',
-    post: 'Пост 1',
+    type: 'warning',
+    icon: AlertTriangle,
+    message: 'Низкий остаток на складе',
+    description: 'Масляный фильтр - осталось 3 шт (мин: 10)',
+    time: new Date(Date.now() - 1000 * 60 * 10),
+    urgent: true,
   },
   {
     id: '2',
-    time: '11:30',
-    client: 'Мария Сидорова',
-    vehicle: 'BMW X5',
-    service: 'Диагностика',
-    status: 'completed',
-    post: 'Пост 2',
+    type: 'warning',
+    icon: AlertTriangle,
+    message: 'Низкий остаток на складе',
+    description: 'Свечи зажигания - осталось 2 шт (мин: 6)',
+    time: new Date(Date.now() - 1000 * 60 * 15),
+    urgent: true,
   },
   {
     id: '3',
-    time: '13:00',
-    client: 'Алексей Смирнов',
-    vehicle: 'Mercedes C-Class',
-    service: 'Шиномонтаж',
-    status: 'in_progress',
-    post: 'Пост 3',
+    type: 'info',
+    icon: Phone,
+    message: 'Запись подтверждена',
+    description: 'Иван Петров подтвердил запись на 15:00',
+    time: new Date(Date.now() - 1000 * 60 * 25),
+    urgent: false,
   },
   {
     id: '4',
-    time: '14:30',
-    client: 'Елена Волкова',
-    vehicle: 'Audi A4',
-    service: 'Тормозные колодки',
-    status: 'pending',
-    post: 'Пост 1',
-  },
-  {
-    id: '5',
-    time: '16:00',
-    client: 'Дмитрий Козлов',
-    vehicle: 'Volkswagen Polo',
-    service: 'ТО',
-    status: 'pending',
-    post: 'Пост 2',
+    type: 'success',
+    icon: DollarSign,
+    message: 'Платеж получен',
+    description: '25,000₽ от Марии Сидоровой',
+    time: new Date(Date.now() - 1000 * 60 * 45),
+    urgent: false,
   },
 ]
 
@@ -132,7 +152,6 @@ const mockActiveOrders = [
     vehicle: 'Mercedes C-Class',
     status: 'in_progress',
     progress: 65,
-    master: 'Дмитрий М.',
   },
   {
     id: 'ORD-2024-049',
@@ -140,7 +159,6 @@ const mockActiveOrders = [
     vehicle: 'Audi A4',
     status: 'pending',
     progress: 0,
-    master: 'Не назначен',
   },
   {
     id: 'ORD-2024-050',
@@ -148,75 +166,33 @@ const mockActiveOrders = [
     vehicle: 'Ford Focus',
     status: 'in_progress',
     progress: 30,
-    master: 'Алексей С.',
   },
-]
-
-// Mock данные популярных услуг
-const mockPopularServices = [
-  { name: 'Замена масла', count: 45, revenue: 135000 },
-  { name: 'Диагностика', count: 32, revenue: 96000 },
-  { name: 'Шиномонтаж', count: 28, revenue: 56000 },
-  { name: 'Тормозные колодки', count: 24, revenue: 144000 },
-]
-
-// Mock данные уведомлений
-const mockNotifications = [
-  {
-    id: '1',
-    type: 'warning',
-    message: 'Низкий остаток масляных фильтров',
-    time: new Date(Date.now() - 1000 * 60 * 10),
-    read: false,
-  },
-  {
-    id: '2',
-    type: 'info',
-    message: 'Запись на 15:00 подтверждена клиентом',
-    time: new Date(Date.now() - 1000 * 60 * 25),
-    read: false,
-  },
-  {
-    id: '3',
-    type: 'success',
-    message: 'Платеж на 25,000₽ получен',
-    time: new Date(Date.now() - 1000 * 60 * 45),
-    read: true,
-  },
-]
-
-// Mock данные низких остатков
-const mockLowStockItems = [
-  { name: 'Масляный фильтр', quantity: 3, minQuantity: 10 },
-  { name: 'Свечи зажигания', quantity: 2, minQuantity: 6 },
 ]
 
 export default function DashboardPage() {
-  const getActivityIcon = (type: string) => {
-    switch (type) {
-      case 'booking':
-        return Calendar
-      case 'order':
-        return FileText
-      case 'client':
-        return Users
-      case 'warehouse':
-        return Package
-      default:
-        return Activity
-    }
-  }
-
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'completed':
-        return 'bg-green-100 text-green-900'
+        return 'bg-green-100 text-green-900 border-green-200'
       case 'in_progress':
-        return 'bg-yellow-100 text-yellow-900'
+        return 'bg-yellow-100 text-yellow-900 border-yellow-200'
       case 'pending':
-        return 'bg-gray-100 text-gray-900'
+        return 'bg-gray-100 text-gray-900 border-gray-200'
       default:
         return ''
+    }
+  }
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'completed':
+        return <CheckCircle className="h-4 w-4 text-green-600" />
+      case 'in_progress':
+        return <Clock className="h-4 w-4 text-yellow-600" />
+      case 'pending':
+        return <Circle className="h-4 w-4 text-gray-400" />
+      default:
+        return null
     }
   }
 
@@ -227,272 +203,343 @@ export default function DashboardPage() {
       case 'in_progress':
         return 'В работе'
       case 'pending':
-        return 'Ожидание'
+        return 'Ожидает'
       default:
         return status
     }
   }
 
-  const getRelativeTime = (date: Date) => {
-    const now = Date.now()
-    const diff = now - date.getTime()
-    const minutes = Math.floor(diff / 1000 / 60)
-
-    if (minutes < 1) return 'только что'
-    if (minutes < 60) return `${minutes} мин назад`
-    const hours = Math.floor(minutes / 60)
-    if (hours < 24) return `${hours} ч назад`
-    return format(date, 'd MMM, HH:mm', { locale: ru })
+  const getTotalBookings = () => {
+    return mockWorkPosts.reduce((sum, post) => sum + post.bookings.length, 0)
   }
 
-  const unreadNotifications = mockNotifications.filter(n => !n.read).length
+  const getInProgressCount = () => {
+    return mockWorkPosts.reduce(
+      (sum, post) => sum + post.bookings.filter(b => b.status === 'in_progress').length,
+      0
+    )
+  }
+
+  const getLowStockCount = () => {
+    return mockNotifications.filter(n => n.type === 'warning' && n.urgent).length
+  }
+
+  const urgentNotifications = mockNotifications.filter(n => n.urgent)
 
   return (
-    <div className="flex flex-1 flex-col gap-4">
-      <div className="flex items-center justify-between">
-        <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
-        <div className="flex items-center space-x-2">
+    <div className="flex flex-1 flex-col gap-6">
+      {/* Заголовок */}
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h2 className="text-3xl font-bold tracking-tight">Рабочий день</h2>
+          <p className="text-muted-foreground">
+            {format(new Date(), 'd MMMM yyyy, EEEE', { locale: ru })}
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Link href="/dashboard/bookings">
+            <Button variant="outline">
+              <Calendar className="mr-2 h-4 w-4" />
+              Календарь
+            </Button>
+          </Link>
           <Link href="/dashboard/orders/new">
             <Button>
               <Plus className="mr-2 h-4 w-4" />
-              Создать заказ
+              Новый заказ
             </Button>
           </Link>
         </div>
       </div>
 
-      {/* Статистика */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      {/* Компактная статистика */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Всего клиентов
-            </CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">1,234</div>
-            <p className="text-xs text-muted-foreground flex items-center mt-1">
-              <ArrowUpRight className="mr-1 h-3 w-3 text-green-500" />
-              <span className="text-green-500">+12%</span>
-              <span className="ml-1">от прошлого месяца</span>
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Записи сегодня
-            </CardTitle>
+            <CardTitle className="text-sm font-medium">Записи сегодня</CardTitle>
             <Calendar className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">8</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              5 завершено, 3 в работе
+            <div className="text-2xl font-bold">{getTotalBookings()}</div>
+            <p className="text-xs text-muted-foreground">
+              {mockWorkPosts.filter(p => p.bookings.length > 0).length} постов заняты
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Выручка за месяц
-            </CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">₽342,500</div>
-            <p className="text-xs text-muted-foreground flex items-center mt-1">
-              <ArrowUpRight className="mr-1 h-3 w-3 text-green-500" />
-              <span className="text-green-500">+8%</span>
-              <span className="ml-1">от прошлого месяца</span>
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Активные заказы
-            </CardTitle>
+            <CardTitle className="text-sm font-medium">В работе</CardTitle>
             <Wrench className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">12</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              в работе
+            <div className="text-2xl font-bold">{getInProgressCount()}</div>
+            <p className="text-xs text-muted-foreground">
+              {mockActiveOrders.length} активных заказов
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Выручка сегодня</CardTitle>
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">₽45,000</div>
+            <p className="text-xs text-muted-foreground">
+              План: ₽60,000
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className={cn(
+          getLowStockCount() > 0 && "border-orange-200 bg-orange-50"
+        )}>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Склад</CardTitle>
+            <Package className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {getLowStockCount() > 0 ? (
+                <span className="text-orange-600">{getLowStockCount()}</span>
+              ) : (
+                <span className="text-green-600">OK</span>
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {getLowStockCount() > 0 ? 'позиций требуют пополнения' : 'все в порядке'}
             </p>
           </CardContent>
         </Card>
       </div>
 
-      {/* График выручки и Последние записи */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-        <Card className="col-span-4">
-          <CardHeader>
-            <CardTitle>Обзор выручки</CardTitle>
-            <CardDescription>
-              Динамика выручки за последний месяц
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="pl-2">
-            <ResponsiveContainer width="100%" height={350}>
-              <LineChart data={mockRevenueData}>
-                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                <XAxis
-                  dataKey="date"
-                  stroke="hsl(var(--muted-foreground))"
-                  fontSize={12}
-                  tickLine={false}
-                  axisLine={false}
-                />
-                <YAxis
-                  stroke="hsl(var(--muted-foreground))"
-                  fontSize={12}
-                  tickLine={false}
-                  axisLine={false}
-                  tickFormatter={(value) => `₽${value / 1000}k`}
-                />
-                <Tooltip
-                  content={({ active, payload }) => {
-                    if (active && payload && payload.length) {
-                      return (
-                        <div className="rounded-lg border bg-background p-2 shadow-sm">
-                          <div className="grid gap-2">
-                            <div className="flex flex-col">
-                              <span className="text-[0.70rem] uppercase text-muted-foreground">
-                                Выручка
-                              </span>
-                              <span className="font-bold">
-                                ₽{payload[0].value?.toLocaleString('ru-RU')}
-                              </span>
+      {/* Основной контент */}
+      <div className="grid gap-6 lg:grid-cols-3">
+        {/* Записи на сегодня - 2 колонки */}
+        <div className="lg:col-span-2 space-y-6">
+          <div>
+            <h3 className="text-lg font-semibold mb-4">Записи по постам</h3>
+
+            <div className="space-y-4">
+              {mockWorkPosts.map((post) => (
+                <Card key={post.id}>
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+                          <Wrench className="h-5 w-5 text-primary" />
+                        </div>
+                        <div>
+                          <CardTitle className="text-base">{post.name}</CardTitle>
+                          <CardDescription className="text-sm">
+                            Мастер: {post.master}
+                          </CardDescription>
+                        </div>
+                      </div>
+                      <Badge variant="outline">
+                        {post.bookings.length} {post.bookings.length === 1 ? 'запись' : 'записей'}
+                      </Badge>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    {post.bookings.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center py-8 text-center">
+                        <Calendar className="h-12 w-12 text-muted-foreground/50 mb-2" />
+                        <p className="text-sm text-muted-foreground mb-4">
+                          Нет записей на сегодня
+                        </p>
+                        <Button variant="outline" size="sm">
+                          <Plus className="mr-2 h-4 w-4" />
+                          Добавить запись
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {post.bookings.map((booking) => (
+                          <div
+                            key={booking.id}
+                            className={cn(
+                              "flex items-start gap-3 rounded-lg border p-3 transition-colors hover:bg-muted/50",
+                              getStatusColor(booking.status)
+                            )}
+                          >
+                            <div className="flex flex-col items-center pt-1">
+                              <div className="text-sm font-semibold">{booking.time}</div>
+                              <div className="text-xs text-muted-foreground">{booking.endTime}</div>
+                            </div>
+
+                            <Separator orientation="vertical" className="h-14" />
+
+                            <div className="flex-1 space-y-1">
+                              <div className="flex items-center justify-between">
+                                <p className="font-medium">{booking.client}</p>
+                                {getStatusIcon(booking.status)}
+                              </div>
+                              <p className="text-sm text-muted-foreground">{booking.vehicle}</p>
+                              <p className="text-sm">{booking.service}</p>
+                            </div>
+
+                            <div className="flex flex-col gap-1">
+                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                                <Phone className="h-4 w-4" />
+                              </Button>
+                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                                <MessageSquare className="h-4 w-4" />
+                              </Button>
                             </div>
                           </div>
-                        </div>
-                      )
-                    }
-                    return null
-                  }}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="revenue"
-                  strokeWidth={2}
-                  activeDot={{
-                    r: 6,
-                    style: { fill: "hsl(var(--primary))" },
-                  }}
-                  style={{
-                    stroke: "hsl(var(--primary))",
-                  }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
+                        ))}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        </div>
 
-        <Card className="col-span-3">
-          <CardHeader>
-            <CardTitle>Последние заказы</CardTitle>
-            <CardDescription>
-              {mockActiveOrders.length} активных заказов
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-8">
-              {mockActiveOrders.map((order) => (
-                <div key={order.id} className="flex items-center">
-                  <Avatar className="h-9 w-9">
-                    <AvatarFallback>{order.client.slice(0, 2).toUpperCase()}</AvatarFallback>
-                  </Avatar>
-                  <div className="ml-4 space-y-1 flex-1">
-                    <p className="text-sm font-medium leading-none">{order.client}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {order.vehicle}
-                    </p>
+        {/* Правая колонка - Уведомления и быстрые действия */}
+        <div className="space-y-6">
+          {/* Быстрые действия */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Быстрые действия</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <Link href="/dashboard/bookings" className="block">
+                <Button variant="outline" className="w-full justify-start" size="sm">
+                  <Calendar className="mr-2 h-4 w-4" />
+                  Новая запись
+                </Button>
+              </Link>
+              <Link href="/dashboard/orders/new" className="block">
+                <Button variant="outline" className="w-full justify-start" size="sm">
+                  <FileText className="mr-2 h-4 w-4" />
+                  Создать заказ
+                </Button>
+              </Link>
+              <Link href="/dashboard/clients" className="block">
+                <Button variant="outline" className="w-full justify-start" size="sm">
+                  <UserPlus className="mr-2 h-4 w-4" />
+                  Новый клиент
+                </Button>
+              </Link>
+              <Link href="/dashboard/warehouse" className="block">
+                <Button variant="outline" className="w-full justify-start" size="sm">
+                  <Warehouse className="mr-2 h-4 w-4" />
+                  Управление складом
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
+
+          {/* Критичные уведомления */}
+          {urgentNotifications.length > 0 && (
+            <Card className="border-orange-200 bg-orange-50">
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4 text-orange-600" />
+                  <CardTitle className="text-base text-orange-900">
+                    Требует внимания
+                  </CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {urgentNotifications.map((notification) => {
+                  const Icon = notification.icon
+                  return (
+                    <div
+                      key={notification.id}
+                      className="flex items-start gap-3 rounded-lg bg-white border border-orange-200 p-3"
+                    >
+                      <Icon className="h-4 w-4 text-orange-600 mt-0.5" />
+                      <div className="flex-1 space-y-1">
+                        <p className="text-sm font-medium text-orange-900">
+                          {notification.message}
+                        </p>
+                        <p className="text-xs text-orange-700">
+                          {notification.description}
+                        </p>
+                      </div>
+                    </div>
+                  )
+                })}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Уведомления */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base">Уведомления</CardTitle>
+                <Badge variant="secondary">{mockNotifications.length}</Badge>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {mockNotifications.filter(n => !n.urgent).map((notification) => {
+                const Icon = notification.icon
+                return (
+                  <div
+                    key={notification.id}
+                    className="flex items-start gap-3 rounded-lg border p-3 hover:bg-muted/50 transition-colors"
+                  >
+                    <Icon className="h-4 w-4 text-muted-foreground mt-0.5" />
+                    <div className="flex-1 space-y-1">
+                      <p className="text-sm font-medium">{notification.message}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {notification.description}
+                      </p>
+                    </div>
                   </div>
-                  <div className="ml-auto font-medium text-sm">
-                    {order.progress}%
+                )
+              })}
+              <Button variant="ghost" size="sm" className="w-full">
+                Показать все
+                <ChevronRight className="ml-2 h-4 w-4" />
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* Активные заказы */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Активные заказы</CardTitle>
+              <CardDescription>
+                {mockActiveOrders.length} в работе
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {mockActiveOrders.map((order) => (
+                <div
+                  key={order.id}
+                  className="flex items-center gap-3 rounded-lg border p-3 hover:bg-muted/50 transition-colors"
+                >
+                  <Avatar className="h-8 w-8">
+                    <AvatarFallback className="text-xs">
+                      {order.client.slice(0, 2).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 space-y-1">
+                    <p className="text-sm font-medium leading-none">{order.id}</p>
+                    <p className="text-xs text-muted-foreground">{order.vehicle}</p>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-sm font-semibold">{order.progress}%</div>
                   </div>
                 </div>
               ))}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Сегодняшние записи и Популярные услуги */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-        <Card className="col-span-4">
-        <CardHeader>
-          <CardTitle>Сегодняшние записи</CardTitle>
-          <CardDescription>
-            {mockTodayBookings.length} записей на {format(new Date(), 'd MMMM', { locale: ru })}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-8">
-            {mockTodayBookings.slice(0, 5).map((booking) => (
-              <div key={booking.id} className="flex items-center">
-                <div className="flex items-center justify-center w-12 h-12 rounded-md bg-muted">
-                  <div className="text-center">
-                    <div className="text-sm font-bold">{booking.time}</div>
-                  </div>
-                </div>
-                <div className="ml-4 space-y-1 flex-1">
-                  <p className="text-sm font-medium leading-none">{booking.client}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {booking.service}
-                  </p>
-                </div>
-                <div className="ml-auto">
-                  {booking.status === 'completed' && (
-                    <CheckCircle className="h-4 w-4 text-green-600" />
-                  )}
-                  {booking.status === 'in_progress' && (
-                    <Clock className="h-4 w-4 text-yellow-600" />
-                  )}
-                  {booking.status === 'pending' && (
-                    <Clock className="h-4 w-4 text-muted-foreground" />
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Популярные услуги */}
-      <Card className="col-span-3">
-        <CardHeader>
-          <CardTitle>Популярные услуги</CardTitle>
-          <CardDescription>
-            Топ услуг за текущий месяц
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-8">
-            {mockPopularServices.map((service, index) => (
-              <div key={index} className="flex items-center">
-                <div className="flex h-9 w-9 items-center justify-center rounded-md bg-muted text-sm font-medium">
-                  {index + 1}
-                </div>
-                <div className="ml-4 space-y-1 flex-1">
-                  <p className="text-sm font-medium leading-none">{service.name}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {service.count} заказов
-                  </p>
-                </div>
-                <div className="ml-auto font-medium text-sm">
-                  ₽{(service.revenue / 1000).toFixed(0)}k
-                </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+              <Link href="/dashboard/orders">
+                <Button variant="ghost" size="sm" className="w-full">
+                  Все заказы
+                  <ChevronRight className="ml-2 h-4 w-4" />
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   )
