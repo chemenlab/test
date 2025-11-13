@@ -159,7 +159,7 @@ export function AddClientDialog({
                   <FormLabel>Тип клиента</FormLabel>
                   <Select
                     onValueChange={field.onChange}
-                    defaultValue={field.value}
+                    value={field.value || 'regular'}
                   >
                     <FormControl>
                       <SelectTrigger>
@@ -187,7 +187,7 @@ export function AddClientDialog({
                   <FormLabel>Источник</FormLabel>
                   <Select
                     onValueChange={field.onChange}
-                    defaultValue={field.value}
+                    value={field.value}
                   >
                     <FormControl>
                       <SelectTrigger>
