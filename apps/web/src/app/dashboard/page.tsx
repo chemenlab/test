@@ -2,6 +2,7 @@
 
 import * as React from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { format } from 'date-fns'
 import { ru } from 'date-fns/locale'
 import {
@@ -22,6 +23,7 @@ import {
   Bell,
   ChevronRight,
   Circle,
+  UserCheck,
 } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -29,9 +31,30 @@ import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { cn } from '@/lib/utils'
+import { toast } from 'sonner'
+
+// Тип для записи
+type Booking = {
+  id: string
+  time: string
+  endTime: string
+  client: string
+  phone: string
+  vehicle: string
+  service: string
+  status: 'completed' | 'in_progress' | 'pending'
+}
+
+// Тип для рабочего поста
+type WorkPost = {
+  id: string
+  name: string
+  master: string
+  bookings: Booking[]
+}
 
 // Mock данные записей на сегодня, сгруппированных по постам
-const mockWorkPosts = [
+const initialWorkPosts: WorkPost[] = [
   {
     id: '1',
     name: 'Пост 1',
@@ -42,7 +65,7 @@ const mockWorkPosts = [
         time: '10:00',
         endTime: '11:00',
         client: 'Иван Петров',
-        phone: '+7 (999) 123-45-67',
+        phone: '+79991234567',
         vehicle: 'Toyota Camry',
         service: 'Замена масла',
         status: 'completed',
@@ -52,7 +75,7 @@ const mockWorkPosts = [
         time: '11:30',
         endTime: '12:30',
         client: 'Мария Сидорова',
-        phone: '+7 (999) 234-56-78',
+        phone: '+79992345678',
         vehicle: 'BMW X5',
         service: 'Диагностика',
         status: 'in_progress',
@@ -62,7 +85,7 @@ const mockWorkPosts = [
         time: '14:30',
         endTime: '16:00',
         client: 'Елена Волкова',
-        phone: '+7 (999) 456-78-90',
+        phone: '+79994567890',
         vehicle: 'Audi A4',
         service: 'Тормозные колодки',
         status: 'pending',
@@ -79,7 +102,7 @@ const mockWorkPosts = [
         time: '13:00',
         endTime: '14:00',
         client: 'Алексей Смирнов',
-        phone: '+7 (999) 345-67-89',
+        phone: '+79993456789',
         vehicle: 'Mercedes C-Class',
         service: 'Шиномонтаж',
         status: 'in_progress',
@@ -89,7 +112,7 @@ const mockWorkPosts = [
         time: '16:00',
         endTime: '17:30',
         client: 'Дмитрий Козлов',
-        phone: '+7 (999) 567-89-01',
+        phone: '+79995678901',
         vehicle: 'Volkswagen Polo',
         service: 'ТО',
         status: 'pending',
@@ -170,6 +193,9 @@ const mockActiveOrders = [
 ]
 
 export default function DashboardPage() {
+  const router = useRouter()
+  const [workPosts, setWorkPosts] = React.useState<WorkPost[]>(initialWorkPosts)
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'completed':
@@ -210,11 +236,11 @@ export default function DashboardPage() {
   }
 
   const getTotalBookings = () => {
-    return mockWorkPosts.reduce((sum, post) => sum + post.bookings.length, 0)
+    return workPosts.reduce((sum, post) => sum + post.bookings.length, 0)
   }
 
   const getInProgressCount = () => {
-    return mockWorkPosts.reduce(
+    return workPosts.reduce(
       (sum, post) => sum + post.bookings.filter(b => b.status === 'in_progress').length,
       0
     )
@@ -225,6 +251,49 @@ export default function DashboardPage() {
   }
 
   const urgentNotifications = mockNotifications.filter(n => n.urgent)
+
+  // Обработчик клика на запись - открывает детали
+  const handleBookingClick = (bookingId: string) => {
+    router.push(`/dashboard/bookings?id=${bookingId}`)
+  }
+
+  // Обработчик быстрого обновления статуса "Клиент пришел"
+  const handleClientArrived = (postId: string, bookingId: string, e: React.MouseEvent) => {
+    e.stopPropagation() // Prevent card click
+
+    setWorkPosts(prevPosts =>
+      prevPosts.map(post =>
+        post.id === postId
+          ? {
+              ...post,
+              bookings: post.bookings.map(booking =>
+                booking.id === bookingId
+                  ? { ...booking, status: 'in_progress' as const }
+                  : booking
+              ),
+            }
+          : post
+      )
+    )
+
+    toast.success('Статус обновлен', {
+      description: 'Клиент отмечен как прибывший',
+    })
+  }
+
+  // Обработчик звонка
+  const handleCall = (phone: string, e: React.MouseEvent) => {
+    e.stopPropagation()
+    window.location.href = `tel:${phone}`
+  }
+
+  // Обработчик сообщения (WhatsApp)
+  const handleMessage = (phone: string, e: React.MouseEvent) => {
+    e.stopPropagation()
+    // Убираем + из номера для WhatsApp
+    const cleanPhone = phone.replace(/\+/g, '')
+    window.open(`https://wa.me/${cleanPhone}`, '_blank')
+  }
 
   return (
     <div className="flex flex-1 flex-col gap-6">
@@ -262,7 +331,7 @@ export default function DashboardPage() {
           <CardContent>
             <div className="text-2xl font-bold">{getTotalBookings()}</div>
             <p className="text-xs text-muted-foreground">
-              {mockWorkPosts.filter(p => p.bookings.length > 0).length} постов заняты
+              {workPosts.filter(p => p.bookings.length > 0).length} постов заняты
             </p>
           </CardContent>
         </Card>
@@ -323,7 +392,7 @@ export default function DashboardPage() {
             <h3 className="text-lg font-semibold mb-4">Записи по постам</h3>
 
             <div className="space-y-4">
-              {mockWorkPosts.map((post) => (
+              {workPosts.map((post) => (
                 <Card key={post.id}>
                   <CardHeader className="pb-3">
                     <div className="flex items-center justify-between">
@@ -350,44 +419,73 @@ export default function DashboardPage() {
                         <p className="text-sm text-muted-foreground mb-4">
                           Нет записей на сегодня
                         </p>
-                        <Button variant="outline" size="sm">
-                          <Plus className="mr-2 h-4 w-4" />
-                          Добавить запись
-                        </Button>
+                        <Link href="/dashboard/bookings">
+                          <Button variant="outline" size="sm">
+                            <Plus className="mr-2 h-4 w-4" />
+                            Добавить запись
+                          </Button>
+                        </Link>
                       </div>
                     ) : (
                       <div className="space-y-3">
                         {post.bookings.map((booking) => (
                           <div
                             key={booking.id}
+                            onClick={() => handleBookingClick(booking.id)}
                             className={cn(
-                              "flex items-start gap-3 rounded-lg border p-3 transition-colors hover:bg-muted/50",
+                              "flex items-start gap-3 rounded-lg border p-3 transition-all cursor-pointer",
+                              "hover:shadow-md hover:scale-[1.01]",
                               getStatusColor(booking.status)
                             )}
                           >
-                            <div className="flex flex-col items-center pt-1">
+                            <div className="flex flex-col items-center pt-1 min-w-[50px]">
                               <div className="text-sm font-semibold">{booking.time}</div>
                               <div className="text-xs text-muted-foreground">{booking.endTime}</div>
                             </div>
 
                             <Separator orientation="vertical" className="h-14" />
 
-                            <div className="flex-1 space-y-1">
-                              <div className="flex items-center justify-between">
-                                <p className="font-medium">{booking.client}</p>
+                            <div className="flex-1 space-y-1 min-w-0">
+                              <div className="flex items-center justify-between gap-2">
+                                <p className="font-medium truncate">{booking.client}</p>
                                 {getStatusIcon(booking.status)}
                               </div>
-                              <p className="text-sm text-muted-foreground">{booking.vehicle}</p>
-                              <p className="text-sm">{booking.service}</p>
+                              <p className="text-sm text-muted-foreground truncate">{booking.vehicle}</p>
+                              <p className="text-sm truncate">{booking.service}</p>
                             </div>
 
                             <div className="flex flex-col gap-1">
-                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                                <Phone className="h-4 w-4" />
-                              </Button>
-                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                                <MessageSquare className="h-4 w-4" />
-                              </Button>
+                              {booking.status === 'pending' && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-8 px-2 text-xs whitespace-nowrap"
+                                  onClick={(e) => handleClientArrived(post.id, booking.id, e)}
+                                >
+                                  <UserCheck className="mr-1 h-3 w-3" />
+                                  Пришел
+                                </Button>
+                              )}
+                              <div className="flex gap-1">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-8 w-8 p-0"
+                                  onClick={(e) => handleCall(booking.phone, e)}
+                                  title="Позвонить"
+                                >
+                                  <Phone className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-8 w-8 p-0"
+                                  onClick={(e) => handleMessage(booking.phone, e)}
+                                  title="WhatsApp"
+                                >
+                                  <MessageSquare className="h-4 w-4" />
+                                </Button>
+                              </div>
                             </div>
                           </div>
                         ))}
@@ -513,23 +611,22 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent className="space-y-3">
               {mockActiveOrders.map((order) => (
-                <div
-                  key={order.id}
-                  className="flex items-center gap-3 rounded-lg border p-3 hover:bg-muted/50 transition-colors"
-                >
-                  <Avatar className="h-8 w-8">
-                    <AvatarFallback className="text-xs">
-                      {order.client.slice(0, 2).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1 space-y-1">
-                    <p className="text-sm font-medium leading-none">{order.id}</p>
-                    <p className="text-xs text-muted-foreground">{order.vehicle}</p>
+                <Link key={order.id} href={`/dashboard/orders/${order.id}`}>
+                  <div className="flex items-center gap-3 rounded-lg border p-3 hover:bg-muted/50 transition-colors cursor-pointer">
+                    <Avatar className="h-8 w-8">
+                      <AvatarFallback className="text-xs">
+                        {order.client.slice(0, 2).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 space-y-1">
+                      <p className="text-sm font-medium leading-none">{order.id}</p>
+                      <p className="text-xs text-muted-foreground">{order.vehicle}</p>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-sm font-semibold">{order.progress}%</div>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <div className="text-sm font-semibold">{order.progress}%</div>
-                  </div>
-                </div>
+                </Link>
               ))}
               <Link href="/dashboard/orders">
                 <Button variant="ghost" size="sm" className="w-full">
