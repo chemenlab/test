@@ -1,30 +1,57 @@
 import { PrismaClient } from '@prisma/client'
+import * as bcrypt from 'bcryptjs'
 
 const prisma = new PrismaClient()
 
 async function main() {
-  console.log('🌱 Начинаем заполнение базы данных тестовыми данными...')
+  console.log('🌱 Starting database seeding...')
 
-  // Создаем тенант (автосервис)
-  const tenant = await prisma.tenant.upsert({
-    where: { slug: 'vyborsto' },
-    update: {},
-    create: {
-      name: 'Выборсто Автосервис',
-      slug: 'vyborsto',
+  // Очистка данных (опционально)
+  console.log('🧹 Cleaning up existing data...')
+  await prisma.purchaseRequest.deleteMany()
+  await prisma.message.deleteMany()
+  await prisma.orderPart.deleteMany()
+  await prisma.orderWork.deleteMany()
+  await prisma.order.deleteMany()
+  await prisma.booking.deleteMany()
+  await prisma.vehicle.deleteMany()
+  await prisma.client.deleteMany()
+  await prisma.part.deleteMany()
+  await prisma.service.deleteMany()
+  await prisma.workPost.deleteMany()
+  await prisma.user.deleteMany()
+  await prisma.landing.deleteMany()
+  await prisma.subscription.deleteMany()
+  await prisma.tenant.deleteMany()
+
+  // Создание тенанта (автосервис)
+  console.log('🏢 Creating tenant...')
+  const tenant = await prisma.tenant.create({
+    data: {
+      name: 'Автосервис "Профи"',
+      slug: 'autoservice-profi',
       phone: '+7 (999) 123-45-67',
-      email: 'info@vyborsto.ru',
-      address: 'г. Москва, ул. Примерная, д. 1',
+      email: 'info@autoservice.ru',
+      address: 'г. Москва, ул. Автомобильная, д. 15',
+      settings: {
+        workingHours: {
+          monday: { start: '09:00', end: '20:00' },
+          tuesday: { start: '09:00', end: '20:00' },
+          wednesday: { start: '09:00', end: '20:00' },
+          thursday: { start: '09:00', end: '20:00' },
+          friday: { start: '09:00', end: '20:00' },
+          saturday: { start: '10:00', end: '18:00' },
+          sunday: { start: '10:00', end: '18:00' },
+        },
+        timezone: 'Europe/Moscow',
+      },
     },
   })
 
-  console.log('✅ Тенант создан:', tenant.name)
-
-  // Создаем подписку
-  const subscription = await prisma.subscription.upsert({
-    where: { tenantId: tenant.id },
-    update: {},
-    create: {
+  // Создание подписки
+  console.log('💳 Creating subscription...')
+  await prisma.subscription.create({
+    data: {
       tenantId: tenant.id,
       plan: 'pro',
       status: 'active',
@@ -33,384 +60,434 @@ async function main() {
     },
   })
 
-  console.log('✅ Подписка создана:', subscription.plan)
+  // Создание пользователей
+  console.log('👥 Creating users...')
+  const hashedPassword = await bcrypt.hash('password123', 10)
 
-  // Создаем пользователей (мастеров)
-  const users = await Promise.all([
-    prisma.user.upsert({
-      where: { email: 'ivanov@vyborsto.ru' },
-      update: {},
-      create: {
-        tenantId: tenant.id,
-        email: 'ivanov@vyborsto.ru',
-        name: 'Иван Иванов',
-        role: 'master',
-        phone: '+7 (999) 111-11-11',
-      },
-    }),
-    prisma.user.upsert({
-      where: { email: 'petrov@vyborsto.ru' },
-      update: {},
-      create: {
-        tenantId: tenant.id,
-        email: 'petrov@vyborsto.ru',
-        name: 'Петр Петров',
-        role: 'master',
-        phone: '+7 (999) 222-22-22',
-      },
-    }),
-    prisma.user.upsert({
-      where: { email: 'sidorov@vyborsto.ru' },
-      update: {},
-      create: {
-        tenantId: tenant.id,
-        email: 'sidorov@vyborsto.ru',
-        name: 'Сергей Сидоров',
-        role: 'master',
-        phone: '+7 (999) 333-33-33',
-      },
-    }),
-    prisma.user.upsert({
-      where: { email: 'admin@vyborsto.ru' },
-      update: {},
-      create: {
-        tenantId: tenant.id,
-        email: 'admin@vyborsto.ru',
-        name: 'Администратор',
-        role: 'admin',
-        phone: '+7 (999) 000-00-00',
-      },
-    }),
-  ])
+  const adminUser = await prisma.user.create({
+    data: {
+      tenantId: tenant.id,
+      email: 'admin@autoservice.ru',
+      password: hashedPassword,
+      name: 'Иван Админов',
+      role: 'admin',
+      phone: '+7 (999) 111-11-11',
+    },
+  })
 
-  console.log('✅ Пользователи созданы:', users.length)
+  const masterUser1 = await prisma.user.create({
+    data: {
+      tenantId: tenant.id,
+      email: 'master1@autoservice.ru',
+      password: hashedPassword,
+      name: 'Дмитрий Мастеров',
+      role: 'master',
+      phone: '+7 (999) 222-22-22',
+    },
+  })
 
-  // Создаем услуги
-  const services = await Promise.all([
-    prisma.service.create({
-      data: {
-        tenantId: tenant.id,
-        name: 'Замена масла',
-        description: 'Замена моторного масла и масляного фильтра',
-        price: 1500,
-        duration: 30,
-        category: 'Техническое обслуживание',
-      },
-    }),
-    prisma.service.create({
-      data: {
-        tenantId: tenant.id,
-        name: 'Диагностика подвески',
-        description: 'Полная диагностика ходовой части автомобиля',
-        price: 1000,
-        duration: 60,
-        category: 'Диагностика',
-      },
-    }),
-    prisma.service.create({
-      data: {
-        tenantId: tenant.id,
-        name: 'Замена тормозных колодок',
-        description: 'Замена передних тормозных колодок',
-        price: 2500,
-        duration: 90,
-        category: 'Ремонт тормозной системы',
-      },
-    }),
-    prisma.service.create({
-      data: {
-        tenantId: tenant.id,
-        name: 'Компьютерная диагностика',
-        description: 'Диагностика с помощью сканера OBD-II',
-        price: 800,
-        duration: 30,
-        category: 'Диагностика',
-      },
-    }),
-    prisma.service.create({
-      data: {
-        tenantId: tenant.id,
-        name: 'Шиномонтаж',
-        description: 'Шиномонтаж 4 колес с балансировкой',
-        price: 2000,
-        duration: 60,
-        category: 'Шиномонтаж',
-      },
-    }),
-  ])
+  const masterUser2 = await prisma.user.create({
+    data: {
+      tenantId: tenant.id,
+      email: 'master2@autoservice.ru',
+      password: hashedPassword,
+      name: 'Сергей Ремонтов',
+      role: 'master',
+      phone: '+7 (999) 333-33-33',
+    },
+  })
 
-  console.log('✅ Услуги созданы:', services.length)
+  const purchaser = await prisma.user.create({
+    data: {
+      tenantId: tenant.id,
+      email: 'purchaser@autoservice.ru',
+      password: hashedPassword,
+      name: 'Анна Закупщик',
+      role: 'purchaser',
+      phone: '+7 (999) 444-44-44',
+    },
+  })
 
-  // Создаем рабочие посты
-  const workPosts = await Promise.all([
-    prisma.workPost.create({
-      data: {
-        tenantId: tenant.id,
-        name: 'Пост №1',
-        description: 'Основной пост для ремонта',
-      },
-    }),
-    prisma.workPost.create({
-      data: {
-        tenantId: tenant.id,
-        name: 'Пост №2',
-        description: 'Диагностический пост',
-      },
-    }),
-    prisma.workPost.create({
-      data: {
-        tenantId: tenant.id,
-        name: 'Пост №3',
-        description: 'Шиномонтаж',
-      },
-    }),
-  ])
+  // Создание рабочих постов
+  console.log('🏗️ Creating work posts...')
+  const post1 = await prisma.workPost.create({
+    data: {
+      tenantId: tenant.id,
+      name: 'Пост 1',
+      description: 'Основной пост для сложного ремонта',
+    },
+  })
 
-  console.log('✅ Рабочие посты созданы:', workPosts.length)
+  const post2 = await prisma.workPost.create({
+    data: {
+      tenantId: tenant.id,
+      name: 'Пост 2',
+      description: 'Пост для быстрого обслуживания',
+    },
+  })
 
-  // Создаем клиентов
-  const clients = await Promise.all([
-    prisma.client.create({
-      data: {
-        tenantId: tenant.id,
-        name: 'Александр Петров',
-        phone: '+7 (999) 123-45-67',
-        email: 'petrov@example.com',
-        source: 'Сайт',
-        tags: ['VIP', 'Постоянный'],
-      },
-    }),
-    prisma.client.create({
-      data: {
-        tenantId: tenant.id,
-        name: 'Мария Сидорова',
-        phone: '+7 (999) 234-56-78',
-        email: 'sidorova@example.com',
-        source: 'Рекомендация',
-        tags: ['Новый'],
-      },
-    }),
-    prisma.client.create({
-      data: {
-        tenantId: tenant.id,
-        name: 'Дмитрий Иванов',
-        phone: '+7 (999) 345-67-89',
-        source: 'Яндекс',
-        tags: ['Постоянный'],
-      },
-    }),
-    prisma.client.create({
-      data: {
-        tenantId: tenant.id,
-        name: 'Елена Кузнецова',
-        phone: '+7 (999) 456-78-90',
-        email: 'kuznetsova@example.com',
-        source: 'Instagram',
-        tags: ['Новый'],
-      },
-    }),
-    prisma.client.create({
-      data: {
-        tenantId: tenant.id,
-        name: 'Сергей Новиков',
-        phone: '+7 (999) 567-89-01',
-        source: 'Проезжал мимо',
-        tags: ['Разовый'],
-      },
-    }),
-  ])
+  const post3 = await prisma.workPost.create({
+    data: {
+      tenantId: tenant.id,
+      name: 'Пост 3',
+      description: 'Пост для диагностики',
+    },
+  })
 
-  console.log('✅ Клиенты созданы:', clients.length)
+  // Создание услуг
+  console.log('🔧 Creating services...')
+  const serviceOilChange = await prisma.service.create({
+    data: {
+      tenantId: tenant.id,
+      name: 'Замена масла',
+      description: 'Замена моторного масла и масляного фильтра',
+      price: 1500,
+      duration: 30,
+      category: 'Обслуживание',
+    },
+  })
 
-  // Создаем автомобили для клиентов
-  const vehicles = await Promise.all([
-    prisma.vehicle.create({
-      data: {
-        clientId: clients[0].id,
-        brand: 'Toyota',
-        make: 'Toyota',
-        model: 'Camry',
-        year: 2020,
-        licensePlate: 'А123БВ777',
-        vin: 'JT2BG22K123456789',
-      },
-    }),
-    prisma.vehicle.create({
-      data: {
-        clientId: clients[1].id,
-        brand: 'Volkswagen',
-        make: 'Volkswagen',
-        model: 'Polo',
-        year: 2019,
-        licensePlate: 'В456ГД777',
-        vin: 'WV1ZZZ6RZCH123456',
-      },
-    }),
-    prisma.vehicle.create({
-      data: {
-        clientId: clients[2].id,
-        brand: 'Kia',
-        make: 'Kia',
-        model: 'Rio',
-        year: 2021,
-        licensePlate: 'С789ЕЖ777',
-        vin: 'KNADH4A39K6123456',
-      },
-    }),
-    prisma.vehicle.create({
-      data: {
-        clientId: clients[3].id,
-        brand: 'Hyundai',
-        make: 'Hyundai',
-        model: 'Solaris',
-        year: 2018,
-        licensePlate: 'Д012ЗИ777',
-        vin: 'Z94C251BBJR123456',
-      },
-    }),
-    prisma.vehicle.create({
-      data: {
-        clientId: clients[4].id,
-        brand: 'Lada',
-        make: 'Lada',
-        model: 'Vesta',
-        year: 2022,
-        licensePlate: 'Е345КЛ777',
-        vin: 'XTAGFK330J2123456',
-      },
-    }),
-  ])
+  const serviceDiagnostics = await prisma.service.create({
+    data: {
+      tenantId: tenant.id,
+      name: 'Компьютерная диагностика',
+      description: 'Диагностика всех систем автомобиля',
+      price: 800,
+      duration: 30,
+      category: 'Диагностика',
+    },
+  })
 
-  console.log('✅ Автомобили созданы:', vehicles.length)
+  const serviceBrakes = await prisma.service.create({
+    data: {
+      tenantId: tenant.id,
+      name: 'Замена тормозных колодок',
+      description: 'Замена передних или задних колодок',
+      price: 2500,
+      duration: 90,
+      category: 'Тормозная система',
+    },
+  })
 
-  // Создаем записи на сервис
-  const now = new Date()
-  const bookings = await Promise.all([
-    prisma.booking.create({
-      data: {
-        tenantId: tenant.id,
-        clientId: clients[0].id,
-        vehicleId: vehicles[0].id,
-        serviceId: services[0].id,
-        userId: users[0].id,
-        workPostId: workPosts[0].id,
-        startTime: new Date(now.getTime() + 1 * 24 * 60 * 60 * 1000), // +1 день
-        endTime: new Date(now.getTime() + 1 * 24 * 60 * 60 * 1000 + 30 * 60 * 1000), // +30 мин
-        status: 'confirmed',
-      },
-    }),
-    prisma.booking.create({
-      data: {
-        tenantId: tenant.id,
-        clientId: clients[1].id,
-        vehicleId: vehicles[1].id,
-        serviceId: services[1].id,
-        userId: users[1].id,
-        workPostId: workPosts[1].id,
-        startTime: new Date(now.getTime() + 2 * 24 * 60 * 60 * 1000), // +2 дня
-        endTime: new Date(now.getTime() + 2 * 24 * 60 * 60 * 1000 + 60 * 60 * 1000), // +1 час
-        status: 'confirmed',
-      },
-    }),
-  ])
+  const serviceTireChange = await prisma.service.create({
+    data: {
+      tenantId: tenant.id,
+      name: 'Шиномонтаж (4 колеса)',
+      description: 'Сезонная замена и балансировка',
+      price: 2000,
+      duration: 60,
+      category: 'Шиномонтаж',
+    },
+  })
 
-  console.log('✅ Записи созданы:', bookings.length)
+  const serviceAlignment = await prisma.service.create({
+    data: {
+      tenantId: tenant.id,
+      name: 'Развал-схождение',
+      description: 'Регулировка углов установки колес',
+      price: 1800,
+      duration: 60,
+      category: 'Ходовая часть',
+    },
+  })
 
-  // Создаем запчасти
-  const parts = await Promise.all([
-    prisma.part.create({
-      data: {
-        tenantId: tenant.id,
-        name: 'Моторное масло 5W-40',
-        article: 'OIL-5W40-4L',
-        brand: 'Shell',
-        category: 'Масла',
-        price: 2500,
-        purchasePrice: 1800,
-        quantity: 25,
-        minQuantity: 10,
-        unit: 'л',
-      },
-    }),
-    prisma.part.create({
-      data: {
-        tenantId: tenant.id,
-        name: 'Тормозные колодки передние',
-        article: 'BRP-FR-TOYOT',
-        brand: 'Brembo',
-        category: 'Тормозная система',
-        price: 3500,
-        purchasePrice: 2800,
-        quantity: 8,
-        minQuantity: 5,
-        unit: 'компл',
-      },
-    }),
-    prisma.part.create({
-      data: {
-        tenantId: tenant.id,
-        name: 'Масляный фильтр',
-        article: 'FILT-OIL-STD',
-        brand: 'Mann',
-        category: 'Фильтры',
-        price: 450,
-        purchasePrice: 320,
-        quantity: 3,
-        minQuantity: 10,
-        unit: 'шт',
-      },
-    }),
-    prisma.part.create({
-      data: {
-        tenantId: tenant.id,
-        name: 'Воздушный фильтр',
-        article: 'FILT-AIR-STD',
-        brand: 'Filtron',
-        category: 'Фильтры',
-        price: 650,
-        purchasePrice: 450,
-        quantity: 15,
-        minQuantity: 8,
-        unit: 'шт',
-      },
-    }),
-    prisma.part.create({
-      data: {
-        tenantId: tenant.id,
-        name: 'Свечи зажигания',
-        article: 'SPARK-NGK-4PCS',
-        brand: 'NGK',
-        category: 'Зажигание',
-        price: 1200,
-        purchasePrice: 900,
-        quantity: 2,
-        minQuantity: 6,
-        unit: 'компл',
-      },
-    }),
-  ])
+  // Создание клиентов
+  console.log('🚗 Creating clients...')
+  const client1 = await prisma.client.create({
+    data: {
+      tenantId: tenant.id,
+      name: 'Иван Петров',
+      phone: '+7 (999) 123-45-67',
+      email: 'ivan@example.com',
+      type: 'regular',
+      discount: 0,
+      source: 'website',
+      tags: ['VIP'],
+      notes: 'Постоянный клиент',
+    },
+  })
 
-  console.log('✅ Запчасти созданы:', parts.length)
+  const client2 = await prisma.client.create({
+    data: {
+      tenantId: tenant.id,
+      name: 'Мария Сидорова',
+      phone: '+7 (999) 234-56-78',
+      email: 'maria@example.com',
+      type: 'regular',
+      discount: 5,
+      source: 'recommendation',
+      tags: [],
+    },
+  })
 
-  console.log('🎉 База данных успешно заполнена тестовыми данными!')
-  console.log('')
-  console.log('📊 Статистика:')
-  console.log(`   - Тенантов: 1`)
-  console.log(`   - Пользователей: ${users.length}`)
-  console.log(`   - Услуг: ${services.length}`)
-  console.log(`   - Рабочих постов: ${workPosts.length}`)
-  console.log(`   - Клиентов: ${clients.length}`)
-  console.log(`   - Автомобилей: ${vehicles.length}`)
-  console.log(`   - Записей: ${bookings.length}`)
-  console.log(`   - Запчастей: ${parts.length}`)
+  const client3 = await prisma.client.create({
+    data: {
+      tenantId: tenant.id,
+      name: 'ООО "Такси Плюс"',
+      phone: '+7 (999) 345-67-89',
+      email: 'taxi@example.com',
+      type: 'corporate',
+      discount: 15,
+      source: 'cold_call',
+      tags: ['Корпоративный', 'Такси'],
+    },
+  })
+
+  const client4 = await prisma.client.create({
+    data: {
+      tenantId: tenant.id,
+      name: 'Алексей Смирнов',
+      phone: '+7 (999) 456-78-90',
+      email: 'alex@example.com',
+      type: 'regular',
+      discount: 0,
+      source: 'website',
+    },
+  })
+
+  // Создание автомобилей
+  console.log('🚙 Creating vehicles...')
+  const vehicle1 = await prisma.vehicle.create({
+    data: {
+      clientId: client1.id,
+      brand: 'Toyota',
+      model: 'Camry',
+      year: 2020,
+      plateNumber: 'А123БВ',
+      vin: '1HGBH41JXMN109186',
+    },
+  })
+
+  const vehicle2 = await prisma.vehicle.create({
+    data: {
+      clientId: client2.id,
+      brand: 'BMW',
+      model: 'X5',
+      year: 2019,
+      plateNumber: 'К456МН',
+    },
+  })
+
+  const vehicle3 = await prisma.vehicle.create({
+    data: {
+      clientId: client3.id,
+      brand: 'Volkswagen',
+      model: 'Polo',
+      year: 2021,
+      plateNumber: 'В456ГД',
+    },
+  })
+
+  const vehicle4 = await prisma.vehicle.create({
+    data: {
+      clientId: client4.id,
+      brand: 'Mazda',
+      model: 'CX-5',
+      year: 2022,
+      plateNumber: 'Т234УФ',
+    },
+  })
+
+  // Создание записей
+  console.log('📅 Creating bookings...')
+  const tomorrow = new Date()
+  tomorrow.setDate(tomorrow.getDate() + 1)
+  tomorrow.setHours(10, 0, 0, 0)
+
+  await prisma.booking.create({
+    data: {
+      tenantId: tenant.id,
+      clientId: client1.id,
+      vehicleId: vehicle1.id,
+      serviceId: serviceOilChange.id,
+      masterId: masterUser1.id,
+      workPostId: post1.id,
+      startTime: tomorrow,
+      endTime: new Date(tomorrow.getTime() + 30 * 60 * 1000),
+      status: 'confirmed',
+      notes: 'Клиент приедет утром',
+    },
+  })
+
+  const dayAfter = new Date()
+  dayAfter.setDate(dayAfter.getDate() + 2)
+  dayAfter.setHours(14, 0, 0, 0)
+
+  await prisma.booking.create({
+    data: {
+      tenantId: tenant.id,
+      clientId: client2.id,
+      vehicleId: vehicle2.id,
+      serviceId: serviceDiagnostics.id,
+      masterId: masterUser2.id,
+      workPostId: post2.id,
+      startTime: dayAfter,
+      endTime: new Date(dayAfter.getTime() + 30 * 60 * 1000),
+      status: 'pending',
+    },
+  })
+
+  // Создание заказов
+  console.log('📋 Creating orders...')
+  const order1 = await prisma.order.create({
+    data: {
+      tenantId: tenant.id,
+      orderNumber: 'ORD-2024-001',
+      clientId: client1.id,
+      vehicleId: vehicle1.id,
+      masterId: masterUser1.id,
+      status: 'completed',
+      subtotal: 3500,
+      discount: 0,
+      total: 3500,
+      completedAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+    },
+  })
+
+  await prisma.orderWork.create({
+    data: {
+      orderId: order1.id,
+      serviceId: serviceOilChange.id,
+      name: 'Замена масла',
+      price: 1500,
+      quantity: 1,
+      total: 1500,
+    },
+  })
+
+  await prisma.orderPart.create({
+    data: {
+      orderId: order1.id,
+      name: 'Масло моторное 5W-30',
+      article: 'OIL-5W30-001',
+      price: 2000,
+      quantity: 1,
+      total: 2000,
+    },
+  })
+
+  // Создание запчастей на складе
+  console.log('📦 Creating warehouse parts...')
+  await prisma.part.create({
+    data: {
+      tenantId: tenant.id,
+      name: 'Масло моторное 5W-30',
+      article: 'OIL-5W30-001',
+      brand: 'Mobil',
+      category: 'Масла',
+      price: 2000,
+      stock: 25,
+      minStock: 10,
+    },
+  })
+
+  await prisma.part.create({
+    data: {
+      tenantId: tenant.id,
+      name: 'Фильтр масляный',
+      article: 'FILTER-OIL-002',
+      brand: 'Mann',
+      category: 'Фильтры',
+      price: 500,
+      stock: 8,
+      minStock: 15,
+    },
+  })
+
+  await prisma.part.create({
+    data: {
+      tenantId: tenant.id,
+      name: 'Тормозные колодки передние',
+      article: 'BRAKE-PAD-FRONT-003',
+      brand: 'Brembo',
+      category: 'Тормозная система',
+      price: 4500,
+      stock: 5,
+      minStock: 5,
+    },
+  })
+
+  // Создание сообщений
+  console.log('💬 Creating messages...')
+  await prisma.message.create({
+    data: {
+      tenantId: tenant.id,
+      clientId: client1.id,
+      text: 'Здравствуйте! Хочу записаться на замену масла',
+      isFromClient: true,
+      read: true,
+      createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000),
+    },
+  })
+
+  await prisma.message.create({
+    data: {
+      tenantId: tenant.id,
+      clientId: client1.id,
+      text: 'Добрый день! Конечно, есть свободное время завтра в 10:00. Вам подойдет?',
+      isFromClient: false,
+      read: true,
+      createdAt: new Date(Date.now() - 1.5 * 60 * 60 * 1000),
+    },
+  })
+
+  await prisma.message.create({
+    data: {
+      tenantId: tenant.id,
+      clientId: client2.id,
+      text: 'Можно ли сделать диагностику сегодня?',
+      isFromClient: true,
+      read: false,
+      createdAt: new Date(Date.now() - 15 * 60 * 1000),
+    },
+  })
+
+  // Создание заявок на закупку
+  console.log('🛒 Creating purchase requests...')
+  await prisma.purchaseRequest.create({
+    data: {
+      tenantId: tenant.id,
+      requestNumber: 'PR-2024-001',
+      partName: 'Масло моторное 5W-30',
+      partNumber: 'OIL-5W30-001',
+      quantity: 20,
+      priority: 'high',
+      status: 'pending',
+      notes: 'Срочно, заканчивается',
+      createdById: purchaser.id,
+    },
+  })
+
+  await prisma.purchaseRequest.create({
+    data: {
+      tenantId: tenant.id,
+      requestNumber: 'PR-2024-002',
+      partName: 'Фильтр масляный',
+      partNumber: 'FILTER-OIL-002',
+      quantity: 30,
+      priority: 'normal',
+      status: 'approved',
+      supplier: 'Emex',
+      estimatedPrice: 15000,
+      createdById: purchaser.id,
+      reviewedById: adminUser.id,
+      reviewedAt: new Date(Date.now() - 12 * 60 * 60 * 1000),
+    },
+  })
+
+  console.log('✅ Database seeded successfully!')
+  console.log('📧 Test credentials:')
+  console.log('   Admin: admin@autoservice.ru / password123')
+  console.log('   Master 1: master1@autoservice.ru / password123')
+  console.log('   Master 2: master2@autoservice.ru / password123')
+  console.log('   Purchaser: purchaser@autoservice.ru / password123')
 }
 
 main()
-  .then(async () => {
-    await prisma.$disconnect()
-  })
-  .catch(async (e) => {
-    console.error('❌ Ошибка при заполнении базы данных:', e)
-    await prisma.$disconnect()
+  .catch((e) => {
+    console.error('❌ Error during seeding:', e)
     process.exit(1)
+  })
+  .finally(async () => {
+    await prisma.$disconnect()
   })

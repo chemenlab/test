@@ -64,14 +64,17 @@ model User {
   tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   email       String   @unique
+  password    String   // Хешированный пароль
   name        String
-  role        String   // admin, master, manager
+  role        String   // admin, master, manager, purchaser
   avatar      String?
   phone       String?
 
   // Связи
   bookings    Booking[]
   orders      Order[]
+  purchaseRequests PurchaseRequest[] @relation("CreatedPurchaseRequests")
+  reviewedPurchaseRequests PurchaseRequest[] @relation("ReviewedPurchaseRequests")
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -90,6 +93,10 @@ model Client {
   phone       String
   email       String?
 
+  // Тип клиента и скидки
+  type        String   @default("regular") // regular, corporate, wholesale
+  discount    Float    @default(0) // Процент скидки (0-100)
+
   // Метаданные
   source      String?  // Источник: сайт, звонок, соцсети
   tags        String[] // Теги для группировки
@@ -99,12 +106,14 @@ model Client {
   vehicles    Vehicle[]
   bookings    Booking[]
   orders      Order[]
+  messages    Message[]
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
   @@index([tenantId])
   @@index([phone])
+  @@index([type])
 }
 
 // Автомобили клиентов
@@ -338,4 +347,67 @@ model Landing {
 
   @@index([tenantId])
   @@index([slug])
+}
+
+// Сообщения (чат с клиентами)
+model Message {
+  id          String   @id @default(cuid())
+  tenantId    String
+
+  clientId    String
+  client      Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  text        String
+  isFromClient Boolean  @default(true) // true = от клиента, false = от сервиса
+  read        Boolean  @default(false)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([clientId])
+  @@index([createdAt])
+}
+
+// Заявки на закупку запчастей
+model PurchaseRequest {
+  id          String   @id @default(cuid())
+  tenantId    String
+
+  requestNumber String @unique
+
+  // Информация о запчасти
+  partName    String
+  partNumber  String
+  quantity    Int
+  priority    String   // low, normal, high, critical
+
+  // Статус заявки
+  status      String   // pending, approved, rejected, ordered, received
+
+  // Поставщик и цена
+  supplier    String?
+  estimatedPrice Float?
+
+  // Заметки
+  notes       String?
+  rejectionReason String?
+
+  // Связь с заказом поставщику
+  orderId     String?
+
+  // Кто создал заявку
+  createdById String
+  createdBy   User     @relation("CreatedPurchaseRequests", fields: [createdById], references: [id])
+
+  // Кто рассмотрел заявку
+  reviewedById String?
+  reviewedBy  User?    @relation("ReviewedPurchaseRequests", fields: [reviewedById], references: [id])
+  reviewedAt  DateTime?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([tenantId])
+  @@index([requestNumber])
+  @@index([status])
 }
